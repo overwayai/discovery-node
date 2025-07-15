@@ -9,7 +9,7 @@ engine = create_engine(
     pool_size=settings.DB_MIN_CONNECTIONS,
     max_overflow=settings.DB_MAX_CONNECTIONS - settings.DB_MIN_CONNECTIONS,
     echo=settings.DB_ECHO,
-    pool_pre_ping=True
+    pool_pre_ping=True,
 )
 
 # Create session factory
@@ -17,6 +17,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Create declarative base for models
 Base = declarative_base()
+
 
 def get_db_session():
     """

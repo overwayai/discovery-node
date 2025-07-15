@@ -4,28 +4,28 @@ from app.schemas.organization import (
     OrganizationCreate,
     OrganizationUpdate,
     OrganizationInDB,
-    OrganizationResponse
+    OrganizationResponse,
 )
 from app.schemas.category import (
     CategoryBase,
     CategoryCreate,
     CategoryUpdate,
     CategoryInDB,
-    CategoryResponse
+    CategoryResponse,
 )
 from app.schemas.brand import (
     BrandBase,
     BrandCreate,
     BrandUpdate,
     BrandInDB,
-    BrandResponse
+    BrandResponse,
 )
 from app.schemas.product_group import (
     ProductGroupBase,
     ProductGroupCreate,
     ProductGroupUpdate,
     ProductGroupInDB,
-    ProductGroupResponse
+    ProductGroupResponse,
 )
 from app.schemas.product import (
     ProductBase,
@@ -33,12 +33,12 @@ from app.schemas.product import (
     ProductUpdate,
     ProductInDB,
     ProductResponse,
-    PropertyValueBase
+    PropertyValueBase,
 )
 from app.schemas.offer import (
     OfferBase,
     OfferCreate,
     OfferUpdate,
     OfferInDB,
-    OfferResponse
+    OfferResponse,
 )

@@ -4,80 +4,105 @@ from uuid import UUID
 import logging
 from app.db.repositories.product_group_repository import ProductGroupRepository
 from app.services.category_service import CategoryService
-from app.schemas.product_group import ProductGroupCreate, ProductGroupUpdate, ProductGroupInDB
+from app.schemas.product_group import (
+    ProductGroupCreate,
+    ProductGroupUpdate,
+    ProductGroupInDB,
+)
 
 logger = logging.getLogger(__name__)
 
+
 class ProductGroupService:
     """Service for product group-related business logic"""
-    
+
     def __init__(self, db_session):
         self.product_group_repo = ProductGroupRepository(db_session)
         self.category_service = CategoryService(db_session)
-    
+
     def get_product_group(self, product_group_id: UUID) -> Optional[ProductGroupInDB]:
         """Get product group by ID"""
         product_group = self.product_group_repo.get_by_id(product_group_id)
         if not product_group:
             return None
         return ProductGroupInDB.model_validate(product_group)
-    
+
     def get_by_urn(self, urn: str) -> Optional[ProductGroupInDB]:
         """Get product group by URN"""
         product_group = self.product_group_repo.get_by_urn(urn)
         if not product_group:
             return None
         return ProductGroupInDB.model_validate(product_group)
-    
-    def get_by_product_group_id(self, product_group_id: str) -> Optional[ProductGroupInDB]:
+
+    def get_by_product_group_id(
+        self, product_group_id: str
+    ) -> Optional[ProductGroupInDB]:
         """Get product group by external product group ID"""
-        product_group = self.product_group_repo.get_by_product_group_id(product_group_id)
+        product_group = self.product_group_repo.get_by_product_group_id(
+            product_group_id
+        )
         if not product_group:
             return None
         return ProductGroupInDB.model_validate(product_group)
-    
-    def list_product_groups(self, skip: int = 0, limit: int = 100) -> List[ProductGroupInDB]:
+
+    def list_product_groups(
+        self, skip: int = 0, limit: int = 100
+    ) -> List[ProductGroupInDB]:
         """List product groups with pagination"""
         product_groups = self.product_group_repo.list(skip, limit)
         return [ProductGroupInDB.model_validate(pg) for pg in product_groups]
-    
-    def list_by_brand(self, brand_id: UUID, skip: int = 0, limit: int = 100) -> List[ProductGroupInDB]:
+
+    def list_by_brand(
+        self, brand_id: UUID, skip: int = 0, limit: int = 100
+    ) -> List[ProductGroupInDB]:
         """List product groups by brand"""
         product_groups = self.product_group_repo.list_by_brand(brand_id, skip, limit)
         return [ProductGroupInDB.model_validate(pg) for pg in product_groups]
-    
-    def create_product_group(self, product_group_data: ProductGroupCreate) -> ProductGroupInDB:
+
+    def create_product_group(
+        self, product_group_data: ProductGroupCreate
+    ) -> ProductGroupInDB:
         """Create a new product group"""
         # Business logic validation
         existing = self.product_group_repo.get_by_urn(product_group_data.urn)
         if existing:
-            logger.warning(f"Product group with URN {product_group_data.urn} already exists")
+            logger.warning(
+                f"Product group with URN {product_group_data.urn} already exists"
+            )
             # Could raise an exception here, or update the existing product group
-        
+
         # Create the product group
         product_group = self.product_group_repo.create(product_group_data)
         return ProductGroupInDB.model_validate(product_group)
-    
-    def update_product_group(self, product_group_id: UUID, product_group_data: ProductGroupUpdate) -> Optional[ProductGroupInDB]:
+
+    def update_product_group(
+        self, product_group_id: UUID, product_group_data: ProductGroupUpdate
+    ) -> Optional[ProductGroupInDB]:
         """Update an existing product group"""
         # Business logic validation
         if product_group_data.urn:
             existing = self.product_group_repo.get_by_urn(product_group_data.urn)
             if existing and existing.id != product_group_id:
-                logger.warning(f"Another product group with URN {product_group_data.urn} already exists")
+                logger.warning(
+                    f"Another product group with URN {product_group_data.urn} already exists"
+                )
                 # Could raise an exception here
-        
+
         # Update the product group
-        product_group = self.product_group_repo.update(product_group_id, product_group_data)
+        product_group = self.product_group_repo.update(
+            product_group_id, product_group_data
+        )
         if not product_group:
             return None
         return ProductGroupInDB.model_validate(product_group)
-    
+
     def delete_product_group(self, product_group_id: UUID) -> bool:
         """Delete a product group by ID"""
         return self.product_group_repo.delete(product_group_id)
-    
-    def process_product_group(self, product_group_data: Dict[str, Any], brand_id: UUID, organization_id: UUID) -> UUID:
+
+    def process_product_group(
+        self, product_group_data: Dict[str, Any], brand_id: UUID, organization_id: UUID
+    ) -> UUID:
         """
         Process product group data from the CMP product feed.
         Creates or updates the product group in the database.
@@ -85,27 +110,27 @@ class ProductGroupService:
         """
         # Extract URN and product group ID
         urn = product_group_data.get("@id", "")
-        
+
         if not urn:
             logger.error("Product group data missing required @id field")
             raise ValueError("Product group data missing required @id field")
-        
+
         # Check if product group already exists
         product_group_id = None
         existing_product_group = self.product_group_repo.get_by_urn(urn)
         if existing_product_group:
             product_group_id = existing_product_group.id
-        
+
         # Extract varies_by from the data
         varies_by = product_group_data.get("variesBy", [])
         if not varies_by:
             logger.warning(f"Product group {urn} is missing variesBy field")
             varies_by = []
-        
+
         # Normalize varies_by to list if it's a string
         if isinstance(varies_by, str):
             varies_by = [varies_by]
-        
+
         # Extract category information
         category_name = product_group_data.get("category", "")
         if not category_name:
@@ -113,13 +138,18 @@ class ProductGroupService:
             raise ValueError(f"Product group {urn} missing required category name")
         category_slug = self._slugify(category_name)
         # Always compare lower-case for uniqueness
-        category = self.category_service.category_repo.get_by_slug(category_slug.lower())
+        category = self.category_service.category_repo.get_by_slug(
+            category_slug.lower()
+        )
         if not category:
             # Create category if it doesn't exist
             from app.schemas.category import CategoryCreate
-            category = self.category_service.category_repo.create(CategoryCreate(slug=category_slug.lower(), name=category_name))
+
+            category = self.category_service.category_repo.create(
+                CategoryCreate(slug=category_slug.lower(), name=category_name)
+            )
         category_id = category.id
-        
+
         # Create product group data
         product_group_create_data = ProductGroupCreate(
             name=product_group_data.get("name", ""),
@@ -132,18 +162,24 @@ class ProductGroupService:
             urn=urn,
             raw_data=product_group_data,
             category_id=category_id,
-            organization_id=organization_id
+            organization_id=organization_id,
         )
-        
+
         # Create or update the product group
         if product_group_id:
-            product_group_update = ProductGroupUpdate(**product_group_create_data.model_dump())
-            updated_product_group = self.product_group_repo.update(product_group_id, product_group_update)
+            product_group_update = ProductGroupUpdate(
+                **product_group_create_data.model_dump()
+            )
+            updated_product_group = self.product_group_repo.update(
+                product_group_id, product_group_update
+            )
             return updated_product_group.id
         else:
-            new_product_group = self.product_group_repo.create(product_group_create_data)
+            new_product_group = self.product_group_repo.create(
+                product_group_create_data
+            )
             return new_product_group.id
-    
+
     def _slugify(self, text: str) -> str:
         """
         Convert a string to a slug format.

@@ -15,10 +15,7 @@ celery_app = Celery(
     "cmp_discovery",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=[
-        "app.worker.tasks.ingest",
-        "app.worker.tasks.cleanup"
-    ]
+    include=["app.worker.tasks.ingest", "app.worker.tasks.cleanup"],
 )
 
 # Configure Celery
@@ -39,21 +36,24 @@ celery_app.conf.beat_schedule = {}
 
 # Load beat schedule from scheduler module
 from app.worker.schedulers import get_beat_schedule
+
 celery_app.conf.beat_schedule.update(get_beat_schedule())
+
 
 @worker_ready.connect
 def at_worker_ready(sender, **kwargs):
     """Log when worker is ready and schedule initial tasks."""
     logger.info("Celery worker is ready.")
-    
+
     # Import here to avoid circular imports
     from app.worker.tasks.ingest import schedule_all_ingestors
-    
+
     # Schedule initial ingestion
     print(f"TRIGGER_INGESTION_ON_STARTUP: {settings.TRIGGER_INGESTION_ON_STARTUP}")
     if settings.TRIGGER_INGESTION_ON_STARTUP:
         logger.info("Scheduling initial ingestion tasks...")
         schedule_all_ingestors.delay()
+
 
 if __name__ == "__main__":
     celery_app.start()

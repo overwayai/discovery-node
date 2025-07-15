@@ -13,5 +13,5 @@ __all__ = [
     "ProductGroupRepository",
     "ProductRepository",
     "OfferRepository",
-    "VectorRepository"
+    "VectorRepository",
 ]

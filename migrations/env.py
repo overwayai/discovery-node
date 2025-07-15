@@ -15,9 +15,18 @@ from sqlalchemy import engine_from_config, pool
 # Import Base from your app
 try:
     from app.db.base import Base
+
     print("Successfully imported Base")
     # Import all models to ensure they're registered with Base.metadata
-    from app.db.models import Organization, Category, Brand, ProductGroup, Product, Offer
+    from app.db.models import (
+        Organization,
+        Category,
+        Brand,
+        ProductGroup,
+        Product,
+        Offer,
+    )
+
     print("Successfully imported all models")
     print("Base.metadata.tables keys:", list(Base.metadata.tables.keys()))
 except ImportError as e:
@@ -68,7 +77,7 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, 
+            connection=connection,
             target_metadata=target_metadata,
             compare_type=True,  # Detects column type changes
             compare_server_default=True,  # Detects default value changes

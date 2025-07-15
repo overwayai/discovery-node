@@ -4,8 +4,18 @@ from app.db.base import Base
 
 # Organization to Category many-to-many association
 organization_category = Table(
-    'organization_category',
+    "organization_category",
     Base.metadata,
-    Column('organization_id', UUID(as_uuid=True), ForeignKey('organizations.id', ondelete='CASCADE'), primary_key=True),
-    Column('category_id', UUID(as_uuid=True), ForeignKey('categories.id', ondelete='CASCADE'), primary_key=True)
+    Column(
+        "organization_id",
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "category_id",
+        UUID(as_uuid=True),
+        ForeignKey("categories.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )

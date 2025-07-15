@@ -8,10 +8,12 @@ from app.services.organization_service import OrganizationService
 
 logger = logging.getLogger(__name__)
 
+
 class VectorHandler:
     """
     Handler for embedding data.
     """
+
     def __init__(self, db_session, brand_id: Optional[UUID] = None):
         self.db_session = db_session
         self.vector_service = VectorService(db_session)
@@ -22,9 +24,9 @@ class VectorHandler:
         print("Processing vector data")
 
         organization = self.organization_service.get_organization_by_urn(org_urn)
-        
+
         # Extract the UUID from the organization object
-        if organization and hasattr(organization, 'id'):
+        if organization and hasattr(organization, "id"):
             org_id = organization.id
             logger.info(f"Extracted org_id UUID: {org_id}")
         else:
@@ -33,12 +35,12 @@ class VectorHandler:
                 "status": "failed",
                 "error": "Could not extract organization UUID",
                 "total_products": 0,
-                "successful_records": 0
+                "successful_records": 0,
             }
 
         try:
             result = self.vector_service.upsert_products(org_id)
-            
+
             return {
                 "status": "completed" if not result.errors else "partial_failure",
                 "total_products": result.total_products,
@@ -47,13 +49,12 @@ class VectorHandler:
                 "dense_index_success": result.dense_index_success,
                 "sparse_index_success": result.sparse_index_success,
                 "errors": result.errors,
-                "processing_time_seconds": result.processing_time
+                "processing_time_seconds": result.processing_time,
             }
         except Exception as e:
             return {
                 "status": "failed",
                 "error": str(e),
                 "total_products": 0,
-                "successful_records": 0
+                "successful_records": 0,
             }
-            
