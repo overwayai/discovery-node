@@ -1,0 +1,22 @@
+[project]
+name = "discovery-node"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "alembic>=1.16.4",
+    "celery>=5.5.3",
+    "psycopg2-binary>=2.9.10",
+    "pydantic-settings>=2.10.1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "python-dotenv>=1.1.1",
+    "redis>=6.2.0",
+    "sqlalchemy>=2.0.41",
+    "PyYAML>=6.0.1",
+    "watchdog>=6.0.0",
+    "pinecone>=7.3.0",
+    "fastapi>=0.116.1",
+    "uvicorn>=0.35.0",
+]

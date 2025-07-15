@@ -1,0 +1,14 @@
+ingestion:
+  #   # Mode 1: Native CMP feeds (single brand)
+  #   # - source_type: "single_brand"
+  #   #   brand_id: "urn:cmp:brand:insight-editions"
+  #   #   config:
+  #   #     feed_url: "https://insighteditions.com/.well-known/cmp/index.json"
+  #   #     schedule: "0 */4 * * *"
+
+  # Mode 2: Platform adapters (single brand)  
+  - name: "acme-corp"
+    source_type: "local"
+    registry: "samples/acme-solutions/brand-registory.json"
+    feed_path: "samples/acme-solutions/feed/feed.json"
+    schedule: "0 */4 * * *"
