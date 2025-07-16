@@ -11,7 +11,7 @@ services:
   - type: web
     name: discovery-web
     env: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -81,7 +81,7 @@ services:
   - type: worker
     name: discovery-worker
     env: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A app.worker.celery_app worker --loglevel=info
     envVars:
@@ -150,7 +150,7 @@ services:
   - type: worker
     name: discovery-scheduler
     env: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A app.worker.celery_app beat --loglevel=info
     envVars:
@@ -219,7 +219,7 @@ services:
   - type: web
     name: discovery-mcp
     env: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn run_mcp:app --host 0.0.0.0 --port $PORT
     envVars:
