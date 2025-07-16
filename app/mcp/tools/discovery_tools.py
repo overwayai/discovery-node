@@ -38,10 +38,6 @@ def register_discovery_tools(
                             "type": "number",
                             "description": "Maximum number of results (default: 10)",
                             "default": 10
-                        },
-                        "org_id": {
-                            "type": "string",
-                            "description": "Organization ID to filter results (optional)"
                         }
                     }
                 }
@@ -124,7 +120,6 @@ def _handle_search_products(
     """Handle product search requests"""
     query = arguments["query"]
     limit = arguments.get("limit", 10)
-    org_id = arguments.get("org_id")
     
     # Send progress notification
     # Note: We can't use async ctx.session.send_log_message in sync function

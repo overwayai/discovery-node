@@ -15,6 +15,8 @@ from app.core.config import settings
 from app.core.dependencies import get_search_service, get_product_service
 from .event_store import create_event_store
 from .tools.discovery_tools import register_discovery_tools
+from .resources.discovery_resources import register_discovery_resources
+from .prompts.discovery_prompts import register_discovery_prompts
 
 logger = get_logger(__name__)
 
@@ -40,6 +42,9 @@ class MCPServer:
             search_service, 
             product_service
         )
+
+        register_discovery_resources(self.app)
+        register_discovery_prompts(self.app)
         
     def create_starlette_app(self) -> Starlette:
         """Create the Starlette ASGI application"""

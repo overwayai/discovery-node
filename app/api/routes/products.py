@@ -78,7 +78,6 @@ async def get_products(
 
         response_data = format_product_search_response(results)
 
-     
         # Create the ProductSearchResponse object
         response = ProductSearchResponse(**response_data)
 
