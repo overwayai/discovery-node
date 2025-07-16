@@ -48,6 +48,15 @@ class Settings(BaseSettings):
     )
     PINECONE_NAMESPACE: str = os.getenv("PINECONE_NAMESPACE", "__default__")
     MCP_REDIS_URL: str = os.getenv("MCP_REDIS_URL", "redis://localhost:6379/1")
+    
+    @property
+    def mcp_redis_url(self) -> str:
+        """Get MCP Redis URL with database 1 for isolation"""
+        base_url = os.getenv("MCP_REDIS_URL", "redis://localhost:6379/1")
+        # If no database specified, use database 1 for MCP
+        if "/" not in base_url.split("://")[1]:
+            return f"{base_url}/1"
+        return base_url
 
     model_config = ConfigDict(env_file=".env", case_sensitive=True)
 
