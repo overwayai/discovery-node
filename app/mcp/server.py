@@ -43,10 +43,10 @@ class MCPServer:
         
     def create_starlette_app(self) -> Starlette:
         """Create the Starlette ASGI application"""
-        # Create session manager with Redis event store
+        # Create session manager without event store for now to avoid serialization issues
         self.session_manager = StreamableHTTPSessionManager(
             app=self.app,
-            event_store=self.event_store,
+            event_store=None,  # Disable event store temporarily
             json_response=self.json_response,
         )
         

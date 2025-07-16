@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import List
 
 import mcp.types as types
@@ -7,6 +8,7 @@ from mcp.server.lowlevel import Server
 from app.core.logging import get_logger
 from app.services.search_service import SearchService
 from app.services.product_service import ProductService
+from app.utils.formatters import format_product_search_response
 
 logger = get_logger(__name__)
 
@@ -143,45 +145,11 @@ def _handle_search_products(
             )
         ]
     
-    # Debug: Log the first result to see its structure
-    if results:
-        first_result = results[0]
-        logger.info(f"DEBUG: First result type: {type(first_result)}")
-        logger.info(f"DEBUG: First result attributes: {dir(first_result) if hasattr(first_result, '__dict__') else 'No __dict__'}")
-        if hasattr(first_result, 'product_name'):
-            logger.info(f"DEBUG: product_name = {first_result.product_name}")
-        if hasattr(first_result, 'product_brand'):
-            logger.info(f"DEBUG: product_brand = {first_result.product_brand}")
-        if hasattr(first_result, 'product_category'):
-            logger.info(f"DEBUG: product_category = {first_result.product_category}")
-        if hasattr(first_result, 'product_price'):
-            logger.info(f"DEBUG: product_price = {first_result.product_price}")
+    response_data = format_product_search_response(results)
     
-    # Create formatted response
-    response_text = f"Found {len(results)} products for '{query}':\n\n"
-    for i, result in enumerate(results, 1):
-        # Handle both SearchResult objects and dictionaries
-        if hasattr(result, 'product_name'):
-            # SearchResult object
-            name = result.product_name or "Unknown"
-            brand = result.product_brand or "Unknown"
-            category = result.product_category or "Unknown"
-            price = result.product_price or "N/A"
-            product_id = result.id
-        else:
-            # Dictionary
-            name = result.get('name', 'Unknown')
-            brand = result.get('brand', 'Unknown')
-            category = result.get('category', 'Unknown')
-            price = result.get('price', 'N/A')
-            product_id = result.get('id', 'Unknown')
-        
-        response_text += f"{i}. **{name}**\n"
-        response_text += f"   Brand: {brand}\n"
-        response_text += f"   Category: {category}\n"
-        response_text += f"   Price: ${price}\n"
-        response_text += f"   ID: {product_id}\n\n"
-    
+    # Convert dictionary to JSON string for MCP TextContent
+    response_text = json.dumps(response_data, indent=2)
+   
     return [
         types.TextContent(
             type="text",

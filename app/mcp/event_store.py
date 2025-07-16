@@ -58,7 +58,12 @@ class RedisEventStore:
             
             # Convert data to string if it's not already
             if not isinstance(data, str):
-                data = str(data)
+                try:
+                    # Try to serialize as JSON first
+                    data = json.dumps(data, default=str)
+                except (TypeError, ValueError):
+                    # Fallback to string conversion
+                    data = str(data)
             
             event = StoredEvent(
                 id=event_id,
