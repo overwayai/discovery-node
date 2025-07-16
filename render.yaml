@@ -19,8 +19,6 @@ services:
         fromDatabase:
           name: discovery-postgres
           property: connectionString
-      - key: PYTHON_VERSION
-        value: 3.11
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
@@ -89,8 +87,6 @@ services:
         fromDatabase:
           name: discovery-postgres
           property: connectionString
-      - key: PYTHON_VERSION
-        value: 3.11
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
@@ -158,8 +154,6 @@ services:
         fromDatabase:
           name: discovery-postgres
           property: connectionString
-      - key: PYTHON_VERSION
-        value: 3.11
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
@@ -227,8 +221,6 @@ services:
         fromDatabase:
           name: discovery-postgres
           property: connectionString
-      - key: PYTHON_VERSION
-        value: 3.11
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
