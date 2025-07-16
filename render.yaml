@@ -290,7 +290,8 @@ services:
     name: discovery-redis
     region: oregon
     plan: starter
-    maxmemoryPolicy: allkeys-lru 
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 
 
 version: 1.0.0
