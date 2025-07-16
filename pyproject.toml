@@ -3,7 +3,7 @@ name = "discovery-node"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10.16"
 dependencies = [
     "alembic>=1.16.4",
     "celery>=5.5.3",
