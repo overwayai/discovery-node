@@ -9,6 +9,7 @@ A product discovery engine that uses AI to find products that match search queri
 - **Vector Search**: Semantic search using Pinecone vector database
 - **Scheduled Tasks**: Background processing with Celery
 - **REST API**: FastAPI-based API with automatic documentation
+- **MCP Server**: Model Context Protocol server for AI assistant integration
 - **Multi-brand Support**: Handle multiple brands and organizations
 
 ## 🏗️ Architecture
@@ -122,6 +123,13 @@ python main.py serve
 python main.py serve --production --workers 4
 ```
 
+### Start the MCP Server
+
+```bash
+# Start MCP server for AI assistant integration
+python main.py mcp
+```
+
 ### Start Celery Worker
 
 ```bash
@@ -148,9 +156,12 @@ discovery-node/
 │   ├── core/                # Configuration and logging
 │   ├── db/                  # Database models and repositories
 │   ├── ingestors/           # Data ingestion components
+│   ├── mcp/                 # MCP server implementation
 │   ├── schemas/             # Pydantic schemas
 │   ├── services/            # Business logic services
 │   └── worker/              # Celery tasks and schedulers
+├── docs/                    # Documentation
+├── examples/                # Example code and clients
 ├── migrations/              # Database migrations
 ├── samples/                 # Sample data and feeds
 ├── scripts/                 # Utility scripts
@@ -191,6 +202,22 @@ uv run isort .
 ### Products
 - `GET /api/products` - List products
 - `GET /api/products/{urn}` - to be done
+
+## 🤖 MCP Server
+
+The Discovery Node includes a Model Context Protocol (MCP) server that provides AI assistants with a search tool that uses the exact same logic as the `/products` API endpoint. The MCP server exposes:
+
+### Available Tools
+- **search** - Search for products using natural language query
+  - Uses the same hybrid search logic as the `/products` API
+  - Returns structured JSON-LD response with product details, offers, and media
+
+### Available Resources
+- **discovery://products** - Access to products database
+- **discovery://categories** - Access to categories database
+- **discovery://brands** - Access to brands database
+
+For detailed MCP server documentation, see [docs/mcp-server.md](docs/mcp-server.md).
 
 
 

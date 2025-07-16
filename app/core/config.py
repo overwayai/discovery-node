@@ -47,6 +47,7 @@ class Settings(BaseSettings):
         "PINECONE_SPARSE_INDEX", "dev01-cmp-discovery-sparse"
     )
     PINECONE_NAMESPACE: str = os.getenv("PINECONE_NAMESPACE", "__default__")
+    MCP_REDIS_URL: str = os.getenv("MCP_REDIS_URL", "redis://localhost:6379/1")
 
     model_config = ConfigDict(env_file=".env", case_sensitive=True)
 
