@@ -10,8 +10,11 @@ services:
   # Main FastAPI web application
   - type: web
     name: discovery-web
-    env: python
+    runtime: python
+    region: oregon
     plan: starter
+    healthCheckPath: /health
+    autoDeploy: true
     buildCommand: pip install -r requirements.txt
     startCommand: python main.py serve --host 0.0.0.0 --port $PORT --production
     preDeployCommand: alembic upgrade head && python -m scripts.setup_pinecone
@@ -75,14 +78,15 @@ services:
         sync: false
       - key: PINECONE_NAMESPACE
         value: __default__
-    healthCheckPath: /health
-    autoDeploy: true
+
 
   # Celery worker for background tasks
   - type: worker
     name: discovery-worker
-    env: python
+    runtime: python
+    region: oregon
     plan: starter
+    autoDeploy: true
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A app.worker.celery_app worker --loglevel=info
     envVars:
@@ -145,13 +149,15 @@ services:
         sync: false
       - key: PINECONE_NAMESPACE
         value: __default__
-    autoDeploy: true
+
 
   # Celery beat scheduler for periodic tasks
   - type: worker
     name: discovery-scheduler
-    env: python
+    runtime: python
+    region: oregon
     plan: starter
+    autoDeploy: true
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A app.worker.celery_app beat --loglevel=info
     envVars:
@@ -214,12 +220,12 @@ services:
         sync: false
       - key: PINECONE_NAMESPACE
         value: __default__
-    autoDeploy: true
 
   # MCP StreamableHTTP server
   - type: web
     name: discovery-mcp
-    env: python
+    runtime: python
+    region: oregon
     plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: python run_mcp.py --host 0.0.0.0 --port $PORT --log-level info
@@ -283,8 +289,7 @@ services:
         sync: false
       - key: PINECONE_NAMESPACE
         value: __default__
-    healthCheckPath: /health
-    autoDeploy: true
+
 
   # Redis for MCP event store and Celery broker
   - type: redis
