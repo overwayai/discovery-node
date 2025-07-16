@@ -205,7 +205,17 @@ class SearchService:
                 f"🔍 DEBUG: Extracted product IDs: {product_ids[:5]}..."
             )  # Show first 5
 
-            products = self.product_repository.get_products_with_relations(product_ids)
+            # Convert string IDs to UUID objects for database query
+            from uuid import UUID
+            try:
+                uuid_product_ids = [UUID(pid) for pid in product_ids]
+                logger.info(f"🔍 DEBUG: Converted to UUIDs: {uuid_product_ids[:5]}...")
+            except ValueError as e:
+                logger.error(f"🔍 ERROR: Failed to convert product IDs to UUIDs: {e}")
+                # Fallback to using string IDs if conversion fails
+                uuid_product_ids = product_ids
+
+            products = self.product_repository.get_products_with_relations(uuid_product_ids)
 
             logger.info(f"🔍 DEBUG: Found {len(products)} products in database")
 

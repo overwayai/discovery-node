@@ -1,6 +1,7 @@
 import click
 from app.core.logging import get_logger
 import uvicorn
+import asyncio
 
 logger = get_logger(__name__)
 
