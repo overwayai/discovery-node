@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     PINECONE_NAMESPACE: str = os.getenv("PINECONE_NAMESPACE", "__default__")
     MCP_REDIS_URL: str = os.getenv("MCP_REDIS_URL", "redis://localhost:6379/1")
     
+
     # Vector provider settings
     VECTOR_PROVIDER: str = os.getenv("VECTOR_PROVIDER", "pgvector")  # pgvector (default) or pinecone
     
@@ -61,6 +62,7 @@ class Settings(BaseSettings):
     EMBEDDING_API_KEY: str = os.getenv("EMBEDDING_API_KEY", "")  # API key for embedding provider
     EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "1536"))  # 1536 for text-embedding-3-small
     
+
     @property
     def mcp_redis_url(self) -> str:
         """Get MCP Redis URL with database 1 for isolation"""
