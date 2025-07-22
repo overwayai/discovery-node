@@ -206,7 +206,7 @@ class SearchService:
                 f"🔍 DEBUG: Extracted product IDs: {product_ids[:5]}..."
             )  # Show first 5
 
-            products = self.product_repository.get_products_with_relations(product_ids)
+            products = self.product_repository.get_products_by_urns(product_ids)
 
             logger.info(f"🔍 DEBUG: Found {len(products)} products in database")
 
@@ -302,7 +302,7 @@ class SearchService:
                 else:
                     logger.info(f"🔍 DEBUG: No offers found for product {product.id}")
 
-                product_map[str(product.id)] = {
+                product_map[product.urn] = {
                     "name": product.name,
                     "urn": product.urn,  # Add the URN from the product
                     "brand": brand_name,
