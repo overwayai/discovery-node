@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 @shared_task(
     name="ingest:all", bind=True, max_retries=3, default_retry_delay=300  # 5 minutes
 )
-def ingest_all(self, ingestor_name, source_type, registry_path=None, feed_path=None):
+def ingest_all(self, ingestor_name, ingestor_config):
     """
     Sequentially ingest registry, feed, and vector for a given ingestor.
     Each step only runs if the previous one succeeded.
@@ -28,45 +28,41 @@ def ingest_all(self, ingestor_name, source_type, registry_path=None, feed_path=N
         results = {}
 
         # 1. Registry
-        if registry_path:
-            try:
-                registry_result = manager.ingest_registry(source_type, registry_path)
-                results["registry"] = {"status": "success", "result": registry_result}
-                logger.info(f"Registry ingestion successful for {ingestor_name}")
-            except Exception as e:
-                logger.exception(
-                    f"Error in registry ingestion for {ingestor_name}: {e}"
-                )
-                results["registry"] = {"status": "error", "error": str(e)}
-                return {"status": "error", "step": "registry", "results": results}
-        else:
-            results["registry"] = {"status": "skipped"}
+
+        try:
+            registry_result = manager.ingest_registry(ingestor_config)
+            results["registry"] = {"status": "success", "result": registry_result}
+            logger.info(f"Registry ingestion successful for {ingestor_name}")
+        except Exception as e:
+            logger.exception(
+                f"Error in registry ingestion for {ingestor_name}: {e}"
+            )
+            results["registry"] = {"status": "error", "error": str(e)}
+            return {"status": "error", "step": "registry", "results": results}
+
 
         # 2. Feed
-        if feed_path:
-            try:
-                feed_result = manager.ingest_feed(source_type, feed_path)
-                results["feed"] = {"status": "success", "result": feed_result}
-                logger.info(f"Feed ingestion successful for {ingestor_name}")
-            except Exception as e:
-                logger.exception(f"Error in feed ingestion for {ingestor_name}: {e}")
-                results["feed"] = {"status": "error", "error": str(e)}
-                return {"status": "error", "step": "feed", "results": results}
-        else:
-            results["feed"] = {"status": "skipped"}
+      
+        try:
+            feed_result = manager.ingest_feed(ingestor_config)
+            results["feed"] = {"status": "success", "result": feed_result}
+            logger.info(f"Feed ingestion successful for {ingestor_name}")
+        except Exception as e:
+            logger.exception(f"Error in feed ingestion for {ingestor_name}: {e}")
+            results["feed"] = {"status": "error", "error": str(e)}
+            return {"status": "error", "step": "feed", "results": results}
+      
+        # 3. Vector
 
-        # 3. Vector (only if registry_path is available)
-        if registry_path:
-            try:
-                vector_result = manager.ingest_vector(source_type, registry_path)
-                results["vector"] = {"status": "success", "result": vector_result}
-                logger.info(f"Vector ingestion successful for {ingestor_name}")
-            except Exception as e:
-                logger.exception(f"Error in vector ingestion for {ingestor_name}: {e}")
-                results["vector"] = {"status": "error", "error": str(e)}
-                return {"status": "error", "step": "vector", "results": results}
-        else:
-            results["vector"] = {"status": "skipped"}
+        try:
+            vector_result = manager.ingest_vector(ingestor_config)
+            results["vector"] = {"status": "success", "result": vector_result}
+            logger.info(f"Vector ingestion successful for {ingestor_name}")
+        except Exception as e:
+            logger.exception(f"Error in vector ingestion for {ingestor_name}: {e}")
+            results["vector"] = {"status": "error", "error": str(e)}
+            return {"status": "error", "step": "vector", "results": results}
+
 
         return {"status": "success", "results": results}
     except Exception as e:
@@ -79,6 +75,7 @@ def schedule_all_ingestors():
     """
     Schedule ingestion tasks for all configured ingestors.
     This task reads the configuration and creates individual tasks.
+    This task is called by celery beat to schedule ingestion tasks for all configured ingestors also called on startup if set to true in the config.
     """
     try:
         logger.info("Scheduling ingestion tasks for all configured ingestors")
@@ -86,11 +83,7 @@ def schedule_all_ingestors():
         ingestors = manager.get_ingestors()
         for ingestor in ingestors:
             logger.info(f"Scheduling full ingestion for {ingestor['name']}")
-            registry_path = ingestor.get("registry")
-            feed_path = ingestor.get("feed_path")
-            ingest_all.delay(
-                ingestor["name"], ingestor["source_type"], registry_path, feed_path
-            )
+            ingest_all.delay(ingestor["name"], ingestor)
         return {"status": "success", "message": f"Scheduled {len(ingestors)} ingestors"}
     except Exception as e:
         logger.exception(f"Error scheduling ingestors: {str(e)}")
@@ -103,16 +96,18 @@ def schedule_all_ingestors():
     max_retries=3,
     default_retry_delay=300,  # 5 minutes
 )
-def ingest_registry(self, ingestor_name, source_type, registry_path):
+def ingest_registry(self, ingestor_name, ingestor_config):
     """
     Ingest a brand registry from the specified source.
 
     Args:
         ingestor_name: Name of the ingestor (for logging)
-        source_type: Type of source (local, remote, ftp, etc.)
-        registry_path: Path or URL to the registry file
+        ingestor_config: Full ingestor configuration dictionary
     """
     try:
+        source_type = ingestor_config.get("source_type")
+        registry_path = ingestor_config.get("registry")
+        
         logger.info(
             f"Starting brand registry ingestion for {ingestor_name} from {registry_path}"
         )
@@ -121,7 +116,7 @@ def ingest_registry(self, ingestor_name, source_type, registry_path):
         manager = IngestorManager()
 
         # Run registry ingestion
-        result = manager.ingest_registry(source_type, registry_path)
+        result = manager.ingest_registry(ingestor_config)
 
         logger.info(f"Completed brand registry ingestion for {ingestor_name}: {result}")
         return {
@@ -154,44 +149,28 @@ def ingest_registry(self, ingestor_name, source_type, registry_path):
 
 
 @shared_task(
-    name="ingest:feed", bind=True, max_retries=3, default_retry_delay=300  # 5 minutes
+    name="ingest:feed", 
+    bind=True, 
+    max_retries=3, 
+    default_retry_delay=300,  # 5 minutes
+    time_limit=7200,  # 2 hours hard limit
+    soft_time_limit=6600  # 1.75 hours soft limit
 )
-def ingest_feed(self, ingestor_name, source_type, feed_path):
+def ingest_feed(self, ingestor_name, ingestor_config):
     """
     Ingest a product feed from the specified source.
     """
     try:
+        source_type = ingestor_config.get("source_type")
+        feed_path = ingestor_config.get("feed_path")
+        
         logger.info(
             f"Starting product feed ingestion for {ingestor_name} from {feed_path}"
         )
         manager = IngestorManager()
-        result = manager.ingest_feed(source_type, feed_path)
+        result = manager.ingest_feed(ingestor_config)
         logger.info(f"Completed product feed ingestion for {ingestor_name}: {result}")
 
-        # After successful feed ingestion, trigger vector ingestion
-        # Find the registry path for this ingestor
-        registry_path = None
-        try:
-            ingestors = manager.get_ingestors()
-            for ingestor in ingestors:
-                if ingestor["name"] == ingestor_name:
-                    registry_path = ingestor.get("registry_path") or ingestor.get(
-                        "registry"
-                    )
-                    break
-        except Exception as e:
-            logger.warning(
-                f"Could not determine registry_path for vector ingestion: {e}"
-            )
-
-        if registry_path:
-            from app.worker.tasks.ingest import ingest_vector
-
-            ingest_vector.delay(ingestor_name, source_type, registry_path)
-        else:
-            logger.warning(
-                f"No registry_path found for vector ingestion for ingestor {ingestor_name}"
-            )
 
         return {
             "status": "success",
@@ -222,18 +201,21 @@ def ingest_feed(self, ingestor_name, source_type, feed_path):
 @shared_task(
     name="ingest:vector", bind=True, max_retries=3, default_retry_delay=300  # 5 minutes
 )
-def ingest_vector(self, ingestor_name, source_type, registry_path):
+def ingest_vector(self, ingestor_name, ingestor_config):
     """
     Ingest a vector from the specified source.
     """
     try:
+        source_type = ingestor_config.get("source_type")
+        registry_path = ingestor_config.get("registry")
+        
         logger.info(
             f"Starting vector ingestion for {ingestor_name} from {registry_path}"
         )
         manager = IngestorManager()
 
         # Run feed ingestion
-        result = manager.ingest_vector(source_type, registry_path)
+        result = manager.ingest_vector(ingestor_config)
 
         logger.info(f"Completed vector ingestion for {ingestor_name}: {result}")
 
@@ -287,7 +269,7 @@ def check_feed_updates():
 
                 # Schedule feed ingestion
                 ingest_feed.delay(
-                    ingestor["name"], ingestor["source_type"], ingestor["feed_path"]
+                    ingestor["name"], ingestor
                 )
 
                 updated_feeds.append(ingestor["name"])

@@ -1,16 +1,19 @@
 # Discovery Node
 
-A product discovery engine that uses AI to find products that match search queries. Built with FastAPI, Celery, PostgreSQL, and Pinecone for vector search.
+A high-performance product discovery engine that uses AI-powered semantic search to find products matching natural language queries. Built with FastAPI, PostgreSQL, and supports multiple vector storage backends (PGVector and Pinecone) for scalable semantic search capabilities.
 
 ## 🚀 Features
 
-- **Product Discovery**: AI-powered product search and matching
-- **Data Ingestion**: Automated ingestion from CMP feeds and local sources
-- **Vector Search**: Semantic search using Pinecone vector database
-- **Scheduled Tasks**: Background processing with Celery
-- **REST API**: FastAPI-based API with automatic documentation
+- **AI-Powered Search**: Natural language product search using state-of-the-art embeddings
+- **Multiple Vector Backends**: Support for both PGVector (PostgreSQL) and Pinecone
+- **Hybrid Search**: Combines semantic search with traditional filtering
+- **Data Ingestion**: Automated ingestion from various feed formats
+- **Scheduled Tasks**: Background processing with Celery for continuous updates
+- **REST API**: FastAPI-based API with automatic OpenAPI documentation
 - **MCP Server**: Model Context Protocol server for AI assistant integration
-- **Multi-brand Support**: Handle multiple brands and organizations
+- **Multi-tenant Support**: Handle multiple brands and organizations
+- **Full-Text Search**: Tantivy-based search engine for text matching
+- **Scalable Architecture**: Microservices design with Redis message queue
 
 ## 🏗️ Architecture
 
@@ -23,17 +26,18 @@ A product discovery engine that uses AI to find products that match search queri
          │                       │                       │
          ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Pinecone      │    │   Redis         │    │   Data Sources  │
-│   Vector DB     │    │   Message Queue │    │   (CMP Feeds)   │
+│  Vector Storage │    │   Redis         │    │   Search Engine │
+│ PGVector/Pinecone│    │   Message Queue │    │    Tantivy      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
 ## 📋 Prerequisites
 
 - Python 3.10+
-- PostgreSQL
-- Redis
-- Pinecone account and API key
+- PostgreSQL 14+ (with pgvector extension if using PGVector backend)
+- Redis 6+
+- OpenAI API key (for embeddings)
+- Optional: Pinecone account (if using Pinecone backend)
 
 ## 🛠️ Installation
 
@@ -54,7 +58,7 @@ A product discovery engine that uses AI to find products that match search queri
 
 3. **Set up environment variables**
    ```bash
-   cp .env.example .env
+   cp .env.sample .env
    # Edit .env with your configuration
    ```
 
@@ -64,9 +68,12 @@ A product discovery engine that uses AI to find products that match search queri
    alembic upgrade head
    ```
 
-5. **Set up Pinecone**
+5. **Initialize vector storage**
    ```bash
-   # Run the Pinecone setup script
+   # If using PGVector (default)
+   # The pgvector extension will be created automatically
+   
+   # If using Pinecone
    python scripts/setup_pinecone.py
    ```
 
@@ -74,28 +81,13 @@ A product discovery engine that uses AI to find products that match search queri
 
 ### Environment Variables
 
-Create a `.env` file with the following variables:
+See `.env.sample` for a complete list of configuration options. Key variables include:
 
-```env
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/discovery_db
-
-# Redis (for Celery)
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/0
-
-# Pinecone
-PINECONE_API_KEY=your_pinecone_api_key
-PINECONE_ENVIRONMENT=your_environment
-PINECONE_DENSE_INDEX=your_dense_index_name
-PINECONE_SPARSE_INDEX=your_sparse_index_name
-
-# Application
-DEBUG=true
-LOG_LEVEL=info
-DATA_DIR=/path/to/your/data
-INGESTION_CONFIG_PATH=/path/to/ingestion.yaml
-```
+- `DATABASE_URL`: PostgreSQL connection string
+- `VECTOR_STORAGE_BACKEND`: Choose between `pgvector` (default) or `pinecone`
+- `EMBEDDING_API_KEY`: OpenAI API key for generating embeddings
+- `REDIS_URL`: Redis connection for Celery tasks
+- `SEARCH_BACKEND`: Choose between `tantivy` (default) or `opensearch`
 
 ### Ingestion Configuration
 
@@ -175,9 +167,85 @@ discovery-node/
 
 ### Running Tests
 
+The project includes comprehensive test suites for different scenarios:
+
+#### 1. Run All Tests
 ```bash
-pytest
+# Run all worker tests (both mocked and database integration)
+python -m pytest tests/worker/ -v
+
+# Run all tests in the project
+python -m pytest tests/ -v
 ```
+
+#### 2. Run Specific Test Types
+
+**Mocked Tests (fast, don't touch database):**
+```bash
+python -m pytest tests/worker/test_worker_ingestion.py -v
+```
+
+**Database Integration Tests (write to test database):**
+```bash
+python -m pytest tests/worker/test_database_ingestion.py -v
+```
+
+**Real Database Population Test (populates with sample data):**
+```bash
+python -m pytest tests/worker/test_real_database_integration.py -v -s
+```
+
+#### 3. Run Individual Tests
+
+**Test registry ingestion to database:**
+```bash
+python -m pytest tests/worker/test_database_ingestion.py::TestDatabaseIngestion::test_ingest_registry_to_database -v -s
+```
+
+**Test complete ingestion workflow:**
+```bash
+python -m pytest tests/worker/test_database_ingestion.py::TestDatabaseIngestion::test_ingest_all_task_with_database -v -s
+```
+
+**Populate test database with Acme data:**
+```bash
+python -m pytest tests/worker/test_real_database_integration.py::TestRealDatabaseIntegration::test_populate_test_database_with_acme_data -v -s
+```
+
+#### 4. Check Database After Tests
+
+After running the database tests, you can inspect the `cmp_discovery_test` database:
+
+```sql
+-- Connect to your PostgreSQL and check the test database
+\c cmp_discovery_test
+
+-- See what data was inserted
+SELECT * FROM organizations;
+SELECT * FROM brands;
+SELECT * FROM product_groups;
+SELECT * FROM categories;
+```
+
+#### 5. Test Environment Setup
+
+The tests use a separate test database defined in `tests/test.env`:
+
+```bash
+# Check that test.env is being used
+cat tests/test.env
+
+# Verify test database connection
+psql postgresql://postgres:admin@localhost:5432/cmp_discovery_test -c "SELECT 1;"
+```
+
+#### Test Options
+
+- Use `-v` for verbose output (shows test names)
+- Use `-s` to see print statements and debug output
+- Use `--tb=short` for shorter error traces if tests fail
+
+The database integration tests will actually populate your `cmp_discovery_test` database with real data from the ingestion.yaml scenarios, so you'll be able to see the results of the ingestion process in the database.
 
 ### Database Migrations
 
@@ -200,8 +268,13 @@ uv run isort .
 ## 📊 API Endpoints
 
 ### Products
-- `GET /api/products` - List products
-- `GET /api/products/{urn}` - to be done
+- `GET /api/products` - Search products with natural language queries
+  - Query parameters: `q` (search query), `limit`, `offset`, `brand`, `category`
+- `GET /api/products/{urn}` - Get product details by URN (coming soon)
+
+### Health & Monitoring
+- `GET /health` - Health check endpoint
+- `GET /api/stats` - System statistics (coming soon)
 
 ## 🤖 MCP Server
 

@@ -39,6 +39,77 @@ class ProductService:
             return None
         return ProductInDB.model_validate(product)
 
+    def get_product_with_details_by_urn(self, urn: str) -> Optional[Dict[str, Any]]:
+        """
+        Search for URN in both products and product groups tables.
+        If found as product: return ONLY the product
+        If found as product group: return product group and all linked products
+        """
+        # First try to find as a product
+        product = self.product_repo.get_by_urn(urn)
+        if product:
+            # Found as product - return ONLY the product (no product group)
+            # Get brand
+            from app.services.brand_service import BrandService
+            brand_service = BrandService(self.db_session)
+            brand = brand_service.get_brand(product.brand_id)
+            
+            # Get category
+            category = None
+            if product.category_id:
+                category = self.category_service.get_category(product.category_id)
+            
+            # Get offers
+            from app.services.offer_service import OfferService
+            offer_service = OfferService(self.db_session)
+            offers = offer_service.list_by_product(product.id)
+            
+            return {
+                "type": "product",
+                "product": ProductInDB.model_validate(product),
+                "brand": brand,
+                "category": category,
+                "offers": offers
+            }
+        
+        # Then try to find as a product group
+        product_group = self.product_group_service.get_by_urn(urn)
+        if product_group:
+            # Found as product group - get all linked products
+            from app.db.repositories.product_repository import ProductRepository
+            product_repo = ProductRepository(self.db_session)
+            linked_products = product_repo.list_by_product_group(product_group.id)
+            
+            # Get brand
+            from app.services.brand_service import BrandService
+            brand_service = BrandService(self.db_session)
+            brand = brand_service.get_brand(product_group.brand_id)
+            
+            # Get category
+            category = None
+            if product_group.category_id:
+                category = self.category_service.get_category(product_group.category_id)
+            
+            # Get offers for all linked products
+            from app.services.offer_service import OfferService
+            offer_service = OfferService(self.db_session)
+            all_offers = []
+            for product in linked_products:
+                offers = offer_service.list_by_product(product.id)
+                all_offers.extend(offers)
+            
+            return {
+                "type": "product_group", 
+                "product_group": product_group,
+                "linked_products": [ProductInDB.model_validate(p) for p in linked_products],
+                "brand": brand,
+                "category": category,
+                "offers": all_offers
+            }
+        
+        # Not found in either table
+        return None
+
     def get_by_sku(
         self, sku: str, brand_id: Optional[UUID] = None
     ) -> Optional[ProductInDB]:
@@ -74,8 +145,8 @@ class ProductService:
         # Business logic validation
         existing = self.product_repo.get_by_urn(product_data.urn)
         if existing:
-            logger.warning(f"Product with URN {product_data.urn} already exists")
-            # Could raise an exception here, or update the existing product
+            logger.warning(f"Product with URN {product_data.urn} already exists, returning existing product")
+            return ProductInDB.model_validate(existing)
 
         # Create the product
         product = self.product_repo.create(product_data)
@@ -143,8 +214,7 @@ class ProductService:
                 logger.warning(
                     f"Product {urn} references non-existent product group {product_group_urn}"
                 )
-                # In a real implementation, you might want to create the product group on-the-fly
-                # or queue it for later processing
+
 
         if not product_group_id:
             logger.error(f"Product {urn} missing required product group reference")
@@ -173,20 +243,7 @@ class ProductService:
                     variant_attributes[name] = value
 
         # Category resolution (always required)
-        if not category_name:
-            logger.error(f"Product {urn} missing required category name")
-            raise ValueError(f"Product {urn} missing required category name")
-        category_slug = self._slugify(category_name)
-        # Always compare lower-case for uniqueness
-        category = self.category_service.category_repo.get_by_slug(
-            category_slug.lower()
-        )
-        if not category:
-            from app.schemas.category import CategoryCreate
-
-            category = self.category_service.category_repo.create(
-                CategoryCreate(slug=category_slug.lower(), name=category_name)
-            )
+        category = self.category_service.get_or_create_by_name(category_name)
         category_id = category.id
 
         # Fetch organization_id from brand
@@ -218,7 +275,8 @@ class ProductService:
             updated_product = self.product_repo.update(product_id, product_update)
             product_id = updated_product.id
         else:
-            new_product = self.product_repo.create(product_create_data)
+            # Use the create_product method which handles duplicate checking
+            new_product = self.create_product(product_create_data)
             product_id = new_product.id
 
         # Process offers if present
@@ -256,3 +314,97 @@ class ProductService:
         """
         # Very basic implementation - for production, use a proper slugify library
         return text.lower().replace(" ", "-").replace("&", "").replace("_", "-")
+
+    def bulk_process_products(
+        self, products_data: List[Dict[str, Any]], brand_id: UUID, category_name: str, batch_size: int = 1000
+    ) -> List[ProductInDB]:
+        """
+        Bulk process products from CMP product feed.
+        Returns list of created/updated products.
+        """
+        product_creates = []
+        
+        # Get brand for organization_id
+        brand = self.db_session.query(Brand).filter(Brand.id == brand_id).first()
+        if not brand:
+            raise ValueError(f"Brand with id {brand_id} not found")
+        organization_id = brand.organization_id
+        
+        # Get category
+        category = self.category_service.get_or_create_by_name(category_name)
+        
+        for product_data in products_data:
+            # Extract URN
+            urn = product_data.get("@id", "")
+            if not urn:
+                logger.warning("Skipping product without @id")
+                continue
+            
+            # Extract SKU
+            sku = product_data.get("sku", "")
+            
+            # Process product group reference
+            product_group_id = None
+            if "isVariantOf" in product_data and "@id" in product_data["isVariantOf"]:
+                product_group_urn = product_data["isVariantOf"]["@id"]
+                product_group = self.product_group_service.get_by_urn(product_group_urn)
+                if product_group:
+                    product_group_id = product_group.id
+                else:
+                    logger.warning(f"Product {urn} references non-existent product group {product_group_urn}")
+                    continue  # Skip products without valid product group
+            
+            if not product_group_id:
+                logger.warning(f"Product {urn} missing required product group reference")
+                continue
+            
+            # Get description from product or product group
+            description = product_data.get("description", "")
+            if not description and product_group and product_group.description:
+                description = product_group.description
+            
+            # Process additional properties
+            additional_properties = []
+            variant_attributes = {}
+            if "additionalProperty" in product_data:
+                props = product_data["additionalProperty"]
+                if not isinstance(props, list):
+                    props = [props]
+                
+                for prop in props:
+                    if "@type" in prop and "name" in prop and "value" in prop:
+                        name = prop["name"]
+                        value = prop["value"]
+                        additional_properties.append(
+                            PropertyValueBase(name=name, value=value)
+                        )
+                        variant_attributes[name] = value
+            
+            # Create product data
+            product_create = ProductCreate(
+                name=product_data.get("name", ""),
+                url=product_data.get("url", ""),
+                sku=sku,
+                description=description,
+                product_group_id=product_group_id,
+                brand_id=brand_id,
+                urn=urn,
+                variant_attributes=variant_attributes,
+                raw_data=product_data,
+                additional_properties=additional_properties,
+                category_id=category.id,
+                organization_id=organization_id,
+            )
+            product_creates.append(product_create)
+        
+        # Bulk upsert
+        upserted = self.product_repo.bulk_upsert(product_creates, batch_size)
+        
+        # Process offers if needed (after products are created)
+        for i, product_data in enumerate(products_data):
+            if "offers" in product_data and i < len(upserted):
+                from app.services.offer_service import OfferService
+                offer_service = OfferService(self.db_session)
+                offer_service.process_offer(product_data["offers"], upserted[i].id, organization_id)
+        
+        return [ProductInDB.model_validate(p) for p in upserted]

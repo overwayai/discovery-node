@@ -1,0 +1,8 @@
+ingestion:
+    # Mode 1: Native CMP feeds (single brand)
+    - name: "insight-editions"
+      source_type: "cmp"
+      registry: "https://github.com/commercemesh/commercemesh/blob/main/registry/example/brands.json"
+      filter:
+        organization: ["urn:cmp:orgid:22eefabc-7b1d-6d29-9e12-22g812190dd3"]
+      schedule: "0 */4 * * *" 
