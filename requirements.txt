@@ -28,7 +28,9 @@ mako==1.3.10
 markupsafe==3.0.2
 mcp==1.11.0
 mcp-server==0.1.4
+openai==1.62.1
 packaging==24.2
+pgvector==0.3.6
 pinecone==7.3.0
 pinecone-plugin-assistant==1.7.0
 pinecone-plugin-interface==0.0.7
