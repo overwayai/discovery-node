@@ -12,7 +12,7 @@ from starlette.types import Receive, Scope, Send
 
 from app.core.logging import get_logger
 from app.core.config import settings
-from app.core.dependencies import get_search_service, get_product_service
+from app.core.dependencies import SearchServiceFactory, ProductServiceFactory
 from .event_store import create_event_store
 from .tools.discovery_tools import register_discovery_tools
 from .resources.discovery_resources import register_discovery_resources
@@ -33,14 +33,14 @@ class MCPServer:
         
     def _register_handlers(self):
         """Register MCP handlers"""
-        # Get services via dependency injection
-        search_service = get_search_service()
-        product_service = get_product_service()
+        # Create service factories for proper session management
+        search_service_factory = SearchServiceFactory()
+        product_service_factory = ProductServiceFactory()
         
         register_discovery_tools(
             self.app, 
-            search_service, 
-            product_service
+            search_service_factory, 
+            product_service_factory
         )
 
         register_discovery_resources(self.app)
