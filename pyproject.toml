@@ -23,4 +23,6 @@ dependencies = [
     "mcp-server>=0.1.4",
     "click>=8.2.1",
     "starlette>=0.47.1",
+    "pgvector>=0.3.6",
+    "openai>=1.62.1",
 ]
