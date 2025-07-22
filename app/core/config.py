@@ -23,14 +23,14 @@ class Settings(BaseSettings):
     EMBEDDING_UPDATE_INTERVAL: int = int(os.getenv("EMBEDDING_UPDATE_INTERVAL", "3600"))
     CLEANUP_INTERVAL: int = int(os.getenv("CLEANUP_INTERVAL", "3600"))
     DATA_DIR: str = os.getenv(
-        "DATA_DIR", "/Users/shiv/Documents/CMP/new/discovery-node/"
+        "DATA_DIR", "/tmp/discovery-node/"
     )
     TRIGGER_INGESTION_ON_STARTUP: bool = (
         os.getenv("TRIGGER_INGESTION_ON_STARTUP", "false").lower() == "true"
     )
     INGESTION_CONFIG_PATH: str = os.getenv(
         "INGESTION_CONFIG_PATH",
-        "/Users/shiv/Documents/CMP/new/discovery-node/ingestion.yaml",
+        "/tmp/ingestion.yaml",
     )
     # Other settings
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
@@ -48,6 +48,18 @@ class Settings(BaseSettings):
     )
     PINECONE_NAMESPACE: str = os.getenv("PINECONE_NAMESPACE", "__default__")
     MCP_REDIS_URL: str = os.getenv("MCP_REDIS_URL", "redis://localhost:6379/1")
+    
+    # Vector provider settings
+    VECTOR_PROVIDER: str = os.getenv("VECTOR_PROVIDER", "pgvector")  # pgvector (default) or pinecone
+    
+    # PgVector settings
+    PGVECTOR_EMBEDDING_SERVICE_URL: str = os.getenv("PGVECTOR_EMBEDDING_SERVICE_URL", "")
+    
+    # Embedding model settings for pgvector
+    EMBEDDING_MODEL_PROVIDER: str = os.getenv("EMBEDDING_MODEL_PROVIDER", "openai")  # openai, cohere, etc.
+    EMBEDDING_MODEL_NAME: str = os.getenv("EMBEDDING_MODEL_NAME", "text-embedding-3-small")
+    EMBEDDING_API_KEY: str = os.getenv("EMBEDDING_API_KEY", "")  # API key for embedding provider
+    EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "1536"))  # 1536 for text-embedding-3-small
     
     @property
     def mcp_redis_url(self) -> str:
