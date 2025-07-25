@@ -400,11 +400,16 @@ class ProductService:
         # Bulk upsert
         upserted = self.product_repo.bulk_upsert(product_creates, batch_size)
         
+        # Create a mapping of URN to product for efficient lookup
+        urn_to_product = {product.urn: product for product in upserted}
+        
         # Process offers if needed (after products are created)
-        for i, product_data in enumerate(products_data):
-            if "offers" in product_data and i < len(upserted):
-                from app.services.offer_service import OfferService
-                offer_service = OfferService(self.db_session)
-                offer_service.process_offer(product_data["offers"], upserted[i].id, organization_id)
+        for product_data in products_data:
+            if "offers" in product_data:
+                urn = product_data.get("@id", "")
+                if urn and urn in urn_to_product:
+                    from app.services.offer_service import OfferService
+                    offer_service = OfferService(self.db_session)
+                    offer_service.process_offer(product_data["offers"], urn_to_product[urn].id, organization_id)
         
         return [ProductInDB.model_validate(p) for p in upserted]

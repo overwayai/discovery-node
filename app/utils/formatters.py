@@ -55,8 +55,10 @@ def format_product_group_item(
     Returns:
         Dict representing a schema.org ProductGroup
     """
+    # Start with basic context
+    context = "https://schema.org"
+    
     item = {
-        "@context": "https://schema.org",
         "@type": "ProductGroup",
         "@id": product_group.urn,
         "name": product_group.name,
@@ -99,6 +101,14 @@ def format_product_group_item(
                 item["image"] = images
             if other_media:
                 item["@cmp:media"] = other_media
+                # Update context to include cmp namespace
+                context = {
+                    "schema": "https://schema.org",
+                    "cmp": "https://schema.commercemesh.ai/ns#"
+                }
+    
+    # Set the context
+    item["@context"] = context
     
     return item
 
@@ -152,6 +162,9 @@ def format_product_item(
         sku = ""
         variant_attrs = {}
         raw_data = {}
+    
+    # Start with basic context
+    context = "https://schema.org"
     
     item = {
         "@type": "Product",
@@ -274,6 +287,11 @@ def format_product_item(
             item["image"] = images
         if cmp_media:
             item["@cmp:media"] = cmp_media
+            # Update context to include cmp namespace
+            context = {
+                "schema": "https://schema.org",
+                "cmp": "https://schema.commercemesh.ai/ns#"
+            }
     
     # Add additional properties from variant attributes
     if variant_attrs:
@@ -290,6 +308,15 @@ def format_product_item(
     # Add search score if available
     if score is not None:
         item["cmp:searchScore"] = score
+        # Update context to include cmp namespace if not already
+        if isinstance(context, str):
+            context = {
+                "schema": "https://schema.org",
+                "cmp": "https://schema.commercemesh.ai/ns#"
+            }
+    
+    # Set the context
+    item["@context"] = context
     
     return item
 
@@ -300,6 +327,7 @@ def format_product_search_response(products: List[SearchResult]) -> Dict[str, An
     Uses the modular format_product_item function.
     """
     item_list_elements = []
+    has_cmp_namespace = False
     
     for i, result in enumerate(products):
         logger.info(f"🔍 DEBUG: Processing result {i}: type={type(result)}")
@@ -334,15 +362,32 @@ def format_product_search_response(products: List[SearchResult]) -> Dict[str, An
                 score=result.get("score")
             )
         
+        # Check if we need the cmp namespace
+        if "@cmp:media" in product_item or "cmp:searchScore" in product_item:
+            has_cmp_namespace = True
+        
         # Create list item
         list_item = {"@type": "ListItem", "position": i + 1, "item": product_item}
         item_list_elements.append(list_item)
     
+    # Set appropriate context
+    if has_cmp_namespace:
+        context = {
+            "@context": {
+                "schema": "https://schema.org",
+                "cmp": "https://schema.commercemesh.ai/ns#"
+            }
+        }
+    else:
+        context = {"@context": "https://schema.org"}
+    
     # Create the final response
     response_data = {
+        **context,
+        "@type": "ItemList",
         "itemListElement": item_list_elements,
-        "cmp_totalResults": len(products),
-        "cmp_nodeVersion": "v1.0.0",
+        "cmp:totalResults": len(products),
+        "cmp:nodeVersion": "v1.0.0",
         "datePublished": datetime.now(timezone.utc).isoformat(),
     }
     
@@ -428,8 +473,29 @@ def format_product_by_urn_response(product_details: Dict[str, Any]) -> Dict[str,
             }
             item_list_elements.append(product_list_item)
     
+    # Check if we need cmp namespace
+    has_cmp_namespace = False
+    for list_item in item_list_elements:
+        item = list_item.get("item", {})
+        if "@cmp:media" in item or "cmp:searchScore" in item:
+            has_cmp_namespace = True
+            break
+    
+    # Set appropriate context
+    if has_cmp_namespace:
+        context = {
+            "@context": {
+                "schema": "https://schema.org",
+                "cmp": "https://schema.commercemesh.ai/ns#"
+            }
+        }
+    else:
+        context = {"@context": "https://schema.org"}
+    
     # Create the final response
     response_data = {
+        **context,
+        "@type": "ItemList",
         "itemListElement": item_list_elements
     }
     

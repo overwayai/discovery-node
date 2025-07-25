@@ -397,33 +397,49 @@ class SearchService:
             if not jsonld:
                 return []
 
+            media_items = []
+            
             # Check for @cmp:media in the main JSON-LD
             if "@cmp:media" in jsonld:
                 media = jsonld["@cmp:media"]
                 if isinstance(media, list):
-                    return media
+                    media_items.extend(media)
                 elif isinstance(media, dict):
-                    return [media]
+                    media_items.append(media)
+            
+            # Check for image field (common in both Product and ProductGroup)
+            if "image" in jsonld:
+                images = jsonld["image"]
+                if isinstance(images, list):
+                    for img in images:
+                        if isinstance(img, dict):
+                            media_items.append(img)
+                        elif isinstance(img, str):
+                            media_items.append({"@type": "ImageObject", "url": img})
+                elif isinstance(images, dict):
+                    media_items.append(images)
+                elif isinstance(images, str):
+                    media_items.append({"@type": "ImageObject", "url": images})
 
             # Check for @cmp:media in offers
             offers = jsonld.get("offers", {})
             if isinstance(offers, dict) and "@cmp:media" in offers:
                 media = offers["@cmp:media"]
                 if isinstance(media, list):
-                    return media
+                    media_items.extend(media)
                 elif isinstance(media, dict):
-                    return [media]
+                    media_items.append(media)
 
             # Check for @cmp:media in nested structures
             for key, value in jsonld.items():
-                if isinstance(value, dict) and "@cmp:media" in value:
+                if key not in ["@cmp:media", "image", "offers"] and isinstance(value, dict) and "@cmp:media" in value:
                     media = value["@cmp:media"]
                     if isinstance(media, list):
-                        return media
+                        media_items.extend(media)
                     elif isinstance(media, dict):
-                        return [media]
+                        media_items.append(media)
 
-            return []
+            return media_items
 
         except Exception as e:
             logger.error(f"Error extracting media from JSON-LD: {str(e)}")
