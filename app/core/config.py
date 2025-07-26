@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     )
     PINECONE_NAMESPACE: str = os.getenv("PINECONE_NAMESPACE", "__default__")
     MCP_REDIS_URL: str = os.getenv("MCP_REDIS_URL", "redis://localhost:6379/1")
+    CACHE_REDIS_URL: Optional[str] = os.getenv("CACHE_REDIS_URL", None)
     
 
     # Vector provider settings

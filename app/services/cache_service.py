@@ -27,6 +27,9 @@ class CacheService:
         # Parse Redis URL and use specified database
         if redis_url:
             base_url = redis_url.rsplit('/', 1)[0]
+        elif settings.CACHE_REDIS_URL:
+            # Use dedicated cache Redis URL if configured
+            base_url = settings.CACHE_REDIS_URL.rsplit('/', 1)[0]
         else:
             # Use the base Redis URL from MCP settings
             base_url = settings.MCP_REDIS_URL.rsplit('/', 1)[0]
