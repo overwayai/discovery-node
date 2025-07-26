@@ -74,6 +74,14 @@ class OfferService:
         Creates or updates the offer in the database.
         Returns the offer ID.
         """
+        # Check if an offer already exists for this product and seller
+        existing_offers = self.offer_repo.list_by_product(product_id)
+        existing_offer = None
+        for offer in existing_offers:
+            if offer.seller_id == seller_id:
+                existing_offer = offer
+                break
+        
         # Extract pricing information
         price = offer_data.get("price", 0.0)
         price_currency = offer_data.get("priceCurrency", "USD")
@@ -125,32 +133,57 @@ class OfferService:
         # Extract additional flags
         gift_wrap = offer_data.get("giftWrap", False)
 
-        # Create offer data
-        offer_create_data = OfferCreate(
-            product_id=product_id,
-            seller_id=seller_id,
-            price=price,
-            price_currency=price_currency,
-            availability=availability,
-            inventory_level=inventory_level,
-            price_valid_until=price_valid_until,
-            shipping_cost=shipping_cost,
-            shipping_currency=shipping_currency,
-            shipping_destination=shipping_destination,
-            shipping_speed_tier=shipping_speed_tier,
-            est_delivery_min_days=est_delivery_min_days,
-            est_delivery_max_days=est_delivery_max_days,
-            warranty_months=warranty_months,
-            warranty_type=warranty_type,
-            return_window_days=return_window_days,
-            restocking_fee_pct=restocking_fee_pct,
-            gift_wrap=gift_wrap,
-            raw_data=offer_data,
-        )
-
-        # Create the offer
-        offer = self.offer_repo.create(offer_create_data)
-        return offer.id
+        # If offer exists, update it; otherwise create new one
+        if existing_offer:
+            logger.info(f"Updating existing offer {existing_offer.id} for product {product_id} and seller {seller_id}")
+            # Update existing offer
+            offer_update_data = OfferUpdate(
+                price=price,
+                price_currency=price_currency,
+                availability=availability,
+                inventory_level=inventory_level,
+                price_valid_until=price_valid_until,
+                shipping_cost=shipping_cost,
+                shipping_currency=shipping_currency,
+                shipping_destination=shipping_destination,
+                shipping_speed_tier=shipping_speed_tier,
+                est_delivery_min_days=est_delivery_min_days,
+                est_delivery_max_days=est_delivery_max_days,
+                warranty_months=warranty_months,
+                warranty_type=warranty_type,
+                return_window_days=return_window_days,
+                restocking_fee_pct=restocking_fee_pct,
+                gift_wrap=gift_wrap,
+                raw_data=offer_data,
+            )
+            updated_offer = self.offer_repo.update(existing_offer.id, offer_update_data)
+            return updated_offer.id
+        else:
+            logger.info(f"Creating new offer for product {product_id} and seller {seller_id}")
+            # Create new offer
+            offer_create_data = OfferCreate(
+                product_id=product_id,
+                seller_id=seller_id,
+                price=price,
+                price_currency=price_currency,
+                availability=availability,
+                inventory_level=inventory_level,
+                price_valid_until=price_valid_until,
+                shipping_cost=shipping_cost,
+                shipping_currency=shipping_currency,
+                shipping_destination=shipping_destination,
+                shipping_speed_tier=shipping_speed_tier,
+                est_delivery_min_days=est_delivery_min_days,
+                est_delivery_max_days=est_delivery_max_days,
+                warranty_months=warranty_months,
+                warranty_type=warranty_type,
+                return_window_days=return_window_days,
+                restocking_fee_pct=restocking_fee_pct,
+                gift_wrap=gift_wrap,
+                raw_data=offer_data,
+            )
+            offer = self.offer_repo.create(offer_create_data)
+            return offer.id
 
     def filter_offers(
         self, filters: Dict[str, Any], skip: int = 0, limit: int = 100
