@@ -13,25 +13,18 @@ logger = get_logger(__name__)
 class CacheService:
     """Service for caching API responses in Redis"""
     
-    def __init__(self, redis_url: Optional[str] = None, db: int = 2, ttl_minutes: int = 15):
+    def __init__(self, redis_url: Optional[str] = None, ttl_minutes: int = 15):
         """
         Initialize the cache service.
         
         Args:
-            redis_url: Redis URL (defaults to settings.MCP_REDIS_URL base)
-            db: Redis database number (default: 2 for cache)
+            redis_url: Redis URL (defaults to settings.CACHE_REDIS_URL)
             ttl_minutes: Cache TTL in minutes (default: 15)
         """
         self.ttl = timedelta(minutes=ttl_minutes)
         
-        # Parse Redis URL and use specified database
-        if redis_url:
-            base_url = redis_url.rsplit('/', 1)[0]
-        else:
-            # Use the base Redis URL from MCP settings
-            base_url = settings.MCP_REDIS_URL.rsplit('/', 1)[0]
-        
-        self.redis_url = f"{base_url}/{db}"
+        # Use provided URL or default to cache_redis_url property (which adds /2 if needed)
+        self.redis_url = redis_url or settings.cache_redis_url
         
         try:
             # Check if URL uses SSL

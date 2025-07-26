@@ -50,6 +50,11 @@ services:
           name: discovery-redis
           type: redis
           property: connectionString
+      - key: CACHE_REDIS_URL
+        fromService:
+          name: discovery-redis
+          type: redis
+          property: connectionString
       - key: FEED_CHECK_INTERVAL
         value: 300
       - key: EMBEDDING_UPDATE_INTERVAL
@@ -119,6 +124,11 @@ services:
           type: redis
           property: connectionString
       - key: MCP_REDIS_URL
+        fromService:
+          name: discovery-redis
+          type: redis
+          property: connectionString
+      - key: CACHE_REDIS_URL
         fromService:
           name: discovery-redis
           type: redis
@@ -196,6 +206,11 @@ services:
           name: discovery-redis
           type: redis
           property: connectionString
+      - key: CACHE_REDIS_URL
+        fromService:
+          name: discovery-redis
+          type: redis
+          property: connectionString
       - key: FEED_CHECK_INTERVAL
         value: 300
       - key: EMBEDDING_UPDATE_INTERVAL
@@ -263,6 +278,11 @@ services:
           type: redis
           property: connectionString
       - key: MCP_REDIS_URL
+        fromService:
+          name: discovery-redis
+          type: redis
+          property: connectionString
+      - key: CACHE_REDIS_URL
         fromService:
           name: discovery-redis
           type: redis

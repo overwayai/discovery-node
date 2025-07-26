@@ -47,7 +47,6 @@ class Settings(BaseSettings):
         "PINECONE_SPARSE_INDEX", "dev01-cmp-discovery-sparse"
     )
     PINECONE_NAMESPACE: str = os.getenv("PINECONE_NAMESPACE", "__default__")
-    MCP_REDIS_URL: str = os.getenv("MCP_REDIS_URL", "redis://localhost:6379/1")
     
 
     # Vector provider settings
@@ -64,13 +63,40 @@ class Settings(BaseSettings):
     
 
     @property
+    def celery_broker_url(self) -> str:
+        """Get Celery broker URL with database 0"""
+        url = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+        # If no database specified, append /0
+        if "/" not in url.split("://")[1].split("@")[-1]:
+            return f"{url}/0"
+        return url
+    
+    @property
+    def celery_result_backend(self) -> str:
+        """Get Celery result backend URL with database 0"""
+        url = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+        # If no database specified, append /0
+        if "/" not in url.split("://")[1].split("@")[-1]:
+            return f"{url}/0"
+        return url
+    
+    @property
     def mcp_redis_url(self) -> str:
         """Get MCP Redis URL with database 1 for isolation"""
-        base_url = os.getenv("MCP_REDIS_URL", "redis://localhost:6379/1")
-        # If no database specified, use database 1 for MCP
-        if "/" not in base_url.split("://")[1]:
-            return f"{base_url}/1"
-        return base_url
+        url = os.getenv("MCP_REDIS_URL", "redis://localhost:6379/1")
+        # If no database specified, append /1
+        if "/" not in url.split("://")[1].split("@")[-1]:
+            return f"{url}/1"
+        return url
+    
+    @property
+    def cache_redis_url(self) -> str:
+        """Get Cache Redis URL with database 2 for isolation"""
+        url = os.getenv("CACHE_REDIS_URL", "redis://localhost:6379/2")
+        # If no database specified, append /2
+        if "/" not in url.split("://")[1].split("@")[-1]:
+            return f"{url}/2"
+        return url
 
     model_config = ConfigDict(env_file=".env", case_sensitive=True)
 
