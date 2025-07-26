@@ -34,13 +34,22 @@ class CacheService:
         self.redis_url = f"{base_url}/{db}"
         
         try:
+            # Check if URL uses SSL
+            conn_params = {
+                "decode_responses": True,
+                "socket_connect_timeout": 5,
+                "socket_timeout": 5,
+                "retry_on_timeout": True,
+                "health_check_interval": 30
+            }
+            
+            # Add SSL parameters for rediss:// URLs
+            if self.redis_url.startswith("rediss://"):
+                conn_params["ssl_cert_reqs"] = "none"
+            
             self.redis_client = redis.from_url(
                 self.redis_url,
-                decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=5,
-                retry_on_timeout=True,
-                health_check_interval=30
+                **conn_params
             )
             # Test connection
             self.redis_client.ping()

@@ -61,7 +61,12 @@ async def detailed_health_check():
     
     # Check Redis (Celery broker)
     try:
-        broker_client = redis.from_url(settings.CELERY_BROKER_URL)
+        # Handle SSL connections
+        conn_params = {}
+        if settings.CELERY_BROKER_URL.startswith("rediss://"):
+            conn_params["ssl_cert_reqs"] = "none"
+        
+        broker_client = redis.from_url(settings.CELERY_BROKER_URL, **conn_params)
         broker_client.ping()
         health_status["dependencies"]["celery_broker"] = {
             "status": "healthy",
