@@ -17,6 +17,7 @@ class Organization(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False, index=True)
+    subdomain = Column(String, unique=True, index=True, nullable=True, comment="Unique subdomain for multi-tenant access")
     description = Column(Text)
     url = Column(String)
     logo_url = Column(String)

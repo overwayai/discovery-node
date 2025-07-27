@@ -22,6 +22,7 @@ class PineconeSearchService(BaseSearchService):
         top_k: int = 20,
         alpha: float = 0.7,
         include_metadata: bool = True,
+        organization_id: Optional[str] = None,
     ):
         """Search for products using Pinecone's dense and sparse indices"""
 
@@ -33,10 +34,10 @@ class PineconeSearchService(BaseSearchService):
             )
             start_time = time.time()
             dense_results = self.vector_repository._search_dense_index(
-                query, fetch_k, alpha, include_metadata
+                query, fetch_k, alpha, include_metadata, organization_id
             )
             sparse_results = self.vector_repository._search_sparse_index(
-                query, fetch_k, alpha, include_metadata
+                query, fetch_k, alpha, include_metadata, organization_id
             )
 
             logger.info(f"🔍 DEBUG: Dense results type: {type(dense_results)}")

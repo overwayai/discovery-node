@@ -39,15 +39,21 @@ class ProductService:
             return None
         return ProductInDB.model_validate(product)
 
-    def get_product_with_details_by_urn(self, urn: str) -> Optional[Dict[str, Any]]:
+    def get_product_with_details_by_urn(self, urn: str, organization_id: Optional[UUID] = None) -> Optional[Dict[str, Any]]:
         """
         Search for URN in both products and product groups tables.
         If found as product: return ONLY the product
         If found as product group: return product group and all linked products
+        
+        In multi-tenant mode, verifies the product belongs to the organization.
         """
         # First try to find as a product
         product = self.product_repo.get_by_urn(urn)
         if product:
+            # In multi-tenant mode, verify the product belongs to the organization
+            if organization_id and product.organization_id != organization_id:
+                return None
+            
             # Found as product - return ONLY the product (no product group)
             # Get brand
             from app.services.brand_service import BrandService
@@ -75,6 +81,10 @@ class ProductService:
         # Then try to find as a product group
         product_group = self.product_group_service.get_by_urn(urn)
         if product_group:
+            # In multi-tenant mode, verify the product group belongs to the organization
+            if organization_id and product_group.organization_id != organization_id:
+                return None
+            
             # Found as product group - get all linked products
             from app.db.repositories.product_repository import ProductRepository
             product_repo = ProductRepository(self.db_session)
@@ -216,11 +226,7 @@ class ProductService:
                 )
 
 
-        if not product_group_id:
-            logger.error(f"Product {urn} missing required product group reference")
-            raise ValueError(f"Product {urn} missing required product group reference")
-
-        # Pull description from product group if not present in product
+        # Pull description from product group if not present in product and product group exists
         if not description and product_group and product_group.description:
             description = product_group.description
             logger.info(f"Using description from product group for product {urn}")
@@ -345,6 +351,7 @@ class ProductService:
             
             # Process product group reference
             product_group_id = None
+            product_group = None
             if "isVariantOf" in product_data and "@id" in product_data["isVariantOf"]:
                 product_group_urn = product_data["isVariantOf"]["@id"]
                 product_group = self.product_group_service.get_by_urn(product_group_urn)
@@ -352,11 +359,6 @@ class ProductService:
                     product_group_id = product_group.id
                 else:
                     logger.warning(f"Product {urn} references non-existent product group {product_group_urn}")
-                    continue  # Skip products without valid product group
-            
-            if not product_group_id:
-                logger.warning(f"Product {urn} missing required product group reference")
-                continue
             
             # Get description from product or product group
             description = product_data.get("description", "")

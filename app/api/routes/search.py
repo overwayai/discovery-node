@@ -4,8 +4,10 @@ from app.services.product_service import ProductService
 from app.schemas.product import ProductSearchResponse, ProductByUrnResponse
 from app.db.base import get_db_session
 from app.services.cache_service import get_cache_service
+from app.core.dependencies import OrganizationId
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from uuid import UUID
 from app.utils.formatters import format_product_search_response, format_product_by_urn_response
 import logging
 import urllib.parse
@@ -58,6 +60,7 @@ async def get_products(
         max_length=500,
         example="wireless headphones",
     ),
+    organization_id: OrganizationId = None,
     db: Session = Depends(get_db_session),
 ) -> ProductSearchResponse:
     """
@@ -84,7 +87,7 @@ async def get_products(
         request_id = cache_key.split(":")[-1]  # Extract request ID from key
         
         search_service = SearchServiceFactory.create(db)
-        results = search_service.search_products(q)
+        results = search_service.search_products(q, organization_id=organization_id)
 
         response_data = format_product_search_response(results)
         

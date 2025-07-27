@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Optional
+from uuid import UUID
 from dataclasses import dataclass
 from app.core.logging import get_logger
 from app.db.repositories.vector_repository_native import VectorRepository
@@ -43,6 +44,7 @@ class SearchService:
         top_k: int = 20,
         alpha: float = 0.7,
         include_metadata: bool = True,
+        organization_id: Optional[UUID] = None,
     ):
         """Search for products using Pinecone's dense and sparse indices"""
 
@@ -54,10 +56,10 @@ class SearchService:
             )
             start_time = time.time()
             dense_results = self.vector_repository._search_dense_index(
-                query, fetch_k, alpha, include_metadata
+                query, fetch_k, alpha, include_metadata, organization_id
             )
             sparse_results = self.vector_repository._search_sparse_index(
-                query, fetch_k, alpha, include_metadata
+                query, fetch_k, alpha, include_metadata, organization_id
             )
 
             # logger.debug(f"🔍 DEBUG: Dense results: {dense_results}")

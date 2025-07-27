@@ -31,9 +31,12 @@ class ProductRepository:
             query = query.filter(Product.brand_id == brand_id)
         return query.first()
 
-    def list(self, skip: int = 0, limit: int = 100) -> List[Product]:
-        """List products with pagination"""
-        return self.db_session.query(Product).offset(skip).limit(limit).all()
+    def list(self, skip: int = 0, limit: int = 100, organization_id: Optional[UUID] = None) -> List[Product]:
+        """List products with pagination, optionally filtered by organization"""
+        query = self.db_session.query(Product)
+        if organization_id:
+            query = query.filter(Product.organization_id == organization_id)
+        return query.offset(skip).limit(limit).all()
 
     def list_by_product_group(
         self, product_group_id: UUID, skip: int = 0, limit: int = 100
@@ -71,22 +74,19 @@ class ProductRepository:
             .all()
         )
 
-    def search(self, query: str, skip: int = 0, limit: int = 100) -> List[Product]:
-        """Search products by name or description"""
+    def search(self, query: str, skip: int = 0, limit: int = 100, organization_id: Optional[UUID] = None) -> List[Product]:
+        """Search products by name or description, optionally filtered by organization"""
         search_term = f"%{query}%"
-        return (
-            self.db_session.query(Product)
-            .filter(
-                or_(
-                    Product.name.ilike(search_term),
-                    Product.description.ilike(search_term),
-                    Product.sku.ilike(search_term),
-                )
+        db_query = self.db_session.query(Product).filter(
+            or_(
+                Product.name.ilike(search_term),
+                Product.description.ilike(search_term),
+                Product.sku.ilike(search_term),
             )
-            .offset(skip)
-            .limit(limit)
-            .all()
         )
+        if organization_id:
+            db_query = db_query.filter(Product.organization_id == organization_id)
+        return db_query.offset(skip).limit(limit).all()
 
     def create(self, product_data: ProductCreate) -> Product:
         """Create a new product"""

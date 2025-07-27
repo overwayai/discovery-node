@@ -16,9 +16,12 @@ class OfferRepository:
         """Get offer by ID"""
         return self.db_session.query(Offer).filter(Offer.id == offer_id).first()
 
-    def list(self, skip: int = 0, limit: int = 100) -> List[Offer]:
-        """List offers with pagination"""
-        return self.db_session.query(Offer).offset(skip).limit(limit).all()
+    def list(self, skip: int = 0, limit: int = 100, organization_id: Optional[UUID] = None) -> List[Offer]:
+        """List offers with pagination, optionally filtered by organization (seller)"""
+        query = self.db_session.query(Offer)
+        if organization_id:
+            query = query.filter(Offer.seller_id == organization_id)
+        return query.offset(skip).limit(limit).all()
 
     def list_by_product(
         self, product_id: UUID, skip: int = 0, limit: int = 100
