@@ -110,7 +110,7 @@ class PgVectorSearchService(BaseSearchService):
                 o.price_currency,
                 o.availability,
                 o.inventory_level,
-                o.seller_id,
+                o.organization_id,
                 p.raw_data
             FROM products p
             JOIN brands b ON p.brand_id = b.id
@@ -159,7 +159,7 @@ class PgVectorSearchService(BaseSearchService):
                     "currency": row.price_currency,
                     "availability": row.availability,
                     "inventory_level": row.inventory_level,
-                    "seller_id": str(row.seller_id) if row.seller_id else None
+                    "organization_id": str(row.organization_id) if row.organization_id else None
                 }]
             
             results.append(result)

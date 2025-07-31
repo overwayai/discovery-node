@@ -20,7 +20,7 @@ class OfferRepository:
         """List offers with pagination, optionally filtered by organization (seller)"""
         query = self.db_session.query(Offer)
         if organization_id:
-            query = query.filter(Offer.seller_id == organization_id)
+            query = query.filter(Offer.organization_id == organization_id)
         return query.offset(skip).limit(limit).all()
 
     def list_by_product(
@@ -35,13 +35,13 @@ class OfferRepository:
             .all()
         )
 
-    def list_by_seller(
-        self, seller_id: UUID, skip: int = 0, limit: int = 100
+    def list_by_organization(
+        self, organization_id: UUID, skip: int = 0, limit: int = 100
     ) -> List[Offer]:
-        """List offers from a specific seller"""
+        """List offers from a specific organization"""
         return (
             self.db_session.query(Offer)
-            .filter(Offer.seller_id == seller_id)
+            .filter(Offer.organization_id == organization_id)
             .offset(skip)
             .limit(limit)
             .all()
@@ -121,8 +121,8 @@ class OfferRepository:
         if "price_max" in filters and filters["price_max"] is not None:
             query = query.filter(Offer.price <= filters["price_max"])
 
-        if "seller_id" in filters and filters["seller_id"] is not None:
-            query = query.filter(Offer.seller_id == filters["seller_id"])
+        if "organization_id" in filters and filters["organization_id"] is not None:
+            query = query.filter(Offer.organization_id == filters["organization_id"])
 
         if "availability" in filters and filters["availability"] is not None:
             query = query.filter(Offer.availability == filters["availability"])

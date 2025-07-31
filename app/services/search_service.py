@@ -254,7 +254,7 @@ class SearchService:
                             offer.price,
                             offer.price_currency,
                             offer.availability,
-                            offer.seller_id,
+                            offer.organization_id,
                         )
                         if offer_key not in seen_offers:
                             seen_offers.add(offer_key)
@@ -265,7 +265,7 @@ class SearchService:
                                 "price": offer.price,
                                 "currency": offer.price_currency,
                                 "availability": offer.availability,
-                                "seller_id": str(offer.seller_id),
+                                "organization_id": str(offer.organization_id),
                             }
 
                             # Add optional offer fields

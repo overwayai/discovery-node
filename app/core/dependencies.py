@@ -81,7 +81,9 @@ async def get_organization_context(
     """
     Extract organization context from request.
     
-    In multi-tenant mode:
+    First checks if API key authentication has set organization_id in request state.
+    
+    Otherwise, in multi-tenant mode:
     - Extract subdomain from Host header
     - Look up organization by subdomain
     - Return organization_id
@@ -90,32 +92,43 @@ async def get_organization_context(
     - Return configured DEFAULT_ORGANIZATION_ID
     - If not configured, return None (no filtering)
     """
+    # Check if organization_id was set by API key authentication
+    if hasattr(request.state, 'organization_id'):
+        return request.state.organization_id
     if not settings.MULTI_TENANT_MODE:
         # Single-tenant mode
         if settings.DEFAULT_ORGANIZATION_ID:
             return UUID(settings.DEFAULT_ORGANIZATION_ID)
         return None
     
-    # Multi-tenant mode - extract subdomain from Host header
-    host = request.headers.get("host", "")
+    # Multi-tenant mode - extract subdomain from Host header or X-Organization header
     
-    if not host:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Host header is required in multi-tenant mode"
-        )
-    
-    # Extract subdomain (first part before first dot)
-    # Handle cases like: subdomain.overway.net, subdomain.overway.net:8000
-    host_parts = host.split(':')[0].split('.')  # Remove port if present
-    
-    if len(host_parts) < 2:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid host format - subdomain required"
-        )
-    
-    subdomain = host_parts[0].lower()
+    # First check for X-Organization header (for proxied requests)
+    org_header = request.headers.get("x-organization", "")
+    if org_header:
+        subdomain = org_header.lower()
+        logger.info(f"Using organization from X-Organization header: {subdomain}")
+    else:
+        # Fall back to Host header
+        host = request.headers.get("host", "")
+        
+        if not host:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Host header is required in multi-tenant mode"
+            )
+        
+        # Extract subdomain (first part before first dot)
+        # Handle cases like: subdomain.overway.net, subdomain.overway.net:8000
+        host_parts = host.split(':')[0].split('.')  # Remove port if present
+        
+        if len(host_parts) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid host format - subdomain required"
+            )
+        
+        subdomain = host_parts[0].lower()
     
     # Look up organization by subdomain
     org_repo = OrganizationRepository(db)

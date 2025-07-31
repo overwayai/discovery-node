@@ -73,6 +73,14 @@ class ProductRepository:
             .limit(limit)
             .all()
         )
+    
+    def count_by_organization(self, organization_id: UUID) -> int:
+        """Count total products for an organization"""
+        return (
+            self.db_session.query(Product)
+            .filter(Product.organization_id == organization_id)
+            .count()
+        )
 
     def search(self, query: str, skip: int = 0, limit: int = 100, organization_id: Optional[UUID] = None) -> List[Product]:
         """Search products by name or description, optionally filtered by organization"""

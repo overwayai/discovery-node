@@ -18,4 +18,9 @@ ingestion:
   #   source_type: "local"
   #   registry: "samples/Insight-editions.myshopify.com/brand-registory.json"
   #   feed_path: "samples/Insight-editions.myshopify.com/feed/feed.json"
-  #   schedule: "0 */4 * * *"al
+  #   schedule: "0 */4 * * *"
+  
+  # Mode 3: Managed ingestion from S3 (multiple organizations)
+  # - name: "managed-organizations"
+  #   source_type: "managed"
+  #   schedule: "0 */4 * * *"

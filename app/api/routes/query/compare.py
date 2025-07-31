@@ -8,7 +8,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 compare_router = APIRouter(
-    prefix="/v1",
     tags=["compare"],
     responses={
         404: {"description": "Cached results not found"},

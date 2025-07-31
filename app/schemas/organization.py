@@ -11,6 +11,7 @@ class OrganizationBase(BaseModel):
 
     name: str
     subdomain: Optional[str] = Field(None, description="Unique subdomain for multi-tenant access")
+    domain: Optional[str] = Field(None, description="Custom domain configured by seller (e.g., agent.brand.com)")
     description: Optional[str] = None
     url: Optional[str] = Field(None, description="Organization's canonical URL")
     logo_url: Optional[str] = Field(None, description="URL to organization logo")
@@ -37,6 +38,7 @@ class OrganizationUpdate(BaseModel):
 
     name: Optional[str] = None
     subdomain: Optional[str] = None
+    domain: Optional[str] = None
     description: Optional[str] = None
     url: Optional[str] = None
     logo_url: Optional[str] = None

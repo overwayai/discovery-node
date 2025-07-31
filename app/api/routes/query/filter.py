@@ -10,7 +10,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 filter_router = APIRouter(
-    prefix="/v1",
     tags=["filter"],
     responses={
         404: {"description": "Cached results not found"},

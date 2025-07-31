@@ -116,6 +116,15 @@ This is a **Discovery Node** - an AI-powered product search engine using semanti
 - **Repository Pattern**: All database operations go through repository classes
 - **Factory Pattern**: For vector storage and search backend selection
 - **Service Layer**: Business logic separated from data access
+  - **Important**: All business logic belongs in the service layer, not in API routes
+  - API routes should only validate input and delegate to service methods
+  - Services handle complex operations like creating related entities, data transformation, etc.
+- **Data Format Conversion**: Use formatters for all JSON-LD conversions
+  - **Important**: All JSON-LD to internal schema conversions should use `app.utils.formatters`
+  - Input conversion: `parse_jsonld_to_*` functions convert JSON-LD to service schemas (ProductCreate, etc.)
+  - Output conversion: `format_*` functions convert internal objects to JSON-LD format
+  - Services should only work with schema objects, never with raw JSON-LD
+  - This ensures consistent data transformation and separation of concerns
 - **Dependency Injection**: Using FastAPI's dependency system
 - **Configuration Management**: Environment-based configuration with Pydantic
 

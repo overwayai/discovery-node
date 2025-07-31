@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 search_router = APIRouter(
-    prefix="/v1",
     responses={
         404: {"description": "Not found"},
         500: {"description": "Internal server error"},
