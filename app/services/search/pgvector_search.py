@@ -25,6 +25,7 @@ class PgVectorSearchService(BaseSearchService):
         top_k: int = 20,
         alpha: float = 0.7,
         include_metadata: bool = True,
+        filters: Optional[Dict[str, Any]] = None,
         organization_id: Optional[str] = None,
     ) -> List[SearchResult]:
         """Search for products using pgvector similarity search"""
@@ -37,7 +38,7 @@ class PgVectorSearchService(BaseSearchService):
             query_embedding = self._get_query_embedding(query)
             
             # Perform similarity search
-            results = self._search_by_embedding(query_embedding, top_k, organization_id)
+            results = self._search_by_embedding(query_embedding, top_k, filters, organization_id)
             
             total_time = time.time() - start_time
             logger.info(f"✅ Search completed in {total_time:.3f}s, found {len(results)} results")
@@ -76,7 +77,7 @@ class PgVectorSearchService(BaseSearchService):
             # Fallback to random for testing
             return np.random.rand(settings.EMBEDDING_DIMENSION).tolist()
     
-    def _search_by_embedding(self, embedding: List[float], top_k: int, organization_id: Optional[str] = None) -> List[SearchResult]:
+    def _search_by_embedding(self, embedding: List[float], top_k: int, filters: Optional[Dict[str, Any]] = None, organization_id: Optional[str] = None) -> List[SearchResult]:
         """Search products by embedding similarity"""
         
         logger.info(f"Searching with embedding dimension: {len(embedding)}, top_k: {top_k}, organization_id: {organization_id}")
@@ -93,6 +94,17 @@ class PgVectorSearchService(BaseSearchService):
         if organization_id:
             where_clauses.append("p.organization_id = :org_id")
             params["org_id"] = organization_id
+            
+        # Add category filter if provided
+        if filters:
+            if filters.get("category"):
+                where_clauses.append("LOWER(c.name) = LOWER(:category)")
+                params["category"] = filters["category"]
+            
+            # Add price filter if provided
+            if filters.get("price_max") is not None:
+                where_clauses.append("o.price <= :price_max")
+                params["price_max"] = filters["price_max"]
         
         where_clause = " AND ".join(where_clauses)
         

@@ -59,6 +59,24 @@ async def get_products(
         max_length=500,
         example="wireless headphones",
     ),
+    limit: int = Query(
+        default=20,
+        description="Maximum number of results to return",
+        ge=1,
+        le=100,
+        example=20,
+    ),
+    category: Optional[str] = Query(
+        default=None,
+        description="Filter results by category name",
+        example="books",
+    ),
+    price_max: Optional[float] = Query(
+        default=None,
+        description="Maximum price filter",
+        ge=0,
+        example=100.0,
+    ),
     organization_id: OrganizationId = None,
     db: Session = Depends(get_db_session),
 ) -> ProductSearchResponse:
@@ -68,6 +86,9 @@ async def get_products(
     The search uses hybrid search combining dense and sparse vectors for optimal results.
 
     - **q**: The search query (e.g., "gaming laptop", "wireless earbuds", "running shoes")
+    - **limit**: Maximum number of results to return (1-100, default: 20)
+    - **category**: Optional category filter (e.g., "books", "electronics")
+    - **price_max**: Optional maximum price filter
 
     Returns a list of products sorted by relevance score.
     """
@@ -85,8 +106,20 @@ async def get_products(
         cache_key = cache_service.generate_cache_key("search")
         request_id = cache_key.split(":")[-1]  # Extract request ID from key
         
+        # Build filters
+        filters = {}
+        if category:
+            filters["category"] = category
+        if price_max is not None:
+            filters["price_max"] = price_max
+            
         search_service = SearchServiceFactory.create(db)
-        results = search_service.search_products(q, organization_id=organization_id)
+        results = search_service.search_products(
+            q, 
+            top_k=limit, 
+            filters=filters,
+            organization_id=organization_id
+        )
 
         response_data = format_product_search_response(results)
         
