@@ -256,10 +256,26 @@ class ProductRepository:
         )
 
     def get_products_for_vector(
-        self, offset: int, limit: int, org_id: UUID
+        self, offset: int, limit: int, org_id: UUID, product_id: Optional[UUID] = None
     ) -> List[ProductForVector]:
         """Get products formatted specifically for vector processing"""
-        products = self.get_products_with_relations_for_org(offset, limit, org_id)
+        if product_id:
+            # Get a specific product by ID
+            products = (
+                self.db_session.query(Product)
+                .options(
+                    selectinload(Product.brand),
+                    selectinload(Product.product_group),
+                    selectinload(Product.category),
+                    selectinload(Product.offers),
+                )
+                .filter(Product.id == product_id, Product.organization_id == org_id)
+                .all()
+            )
+        else:
+            # Get products by organization with pagination
+            products = self.get_products_with_relations_for_org(offset, limit, org_id)
+        
         return [
             ProductForVector.from_product_with_relations(product)
             for product in products

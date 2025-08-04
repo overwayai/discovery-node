@@ -85,9 +85,11 @@ services:
         value: __default__
       - key: VECTOR_PROVIDER
         value: pinecone
+      - key: EMBEDDING_API_KEY
+        sync: false
 
 
-  # Celery worker for background tasks
+  # Celery worker for background tasks (including embeddings)
   - type: worker
     name: discovery-worker
     runtime: python
@@ -95,7 +97,7 @@ services:
     plan: starter
     autoDeploy: true
     buildCommand: pip install -r requirements.txt
-    startCommand: celery -A app.worker.celery_app worker --loglevel=info
+    startCommand: celery -A app.worker.celery_app worker --loglevel=info -Q celery,embeddings_high,embeddings_bulk
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -163,6 +165,8 @@ services:
         value: __default__
       - key: VECTOR_PROVIDER
         value: pinecone
+      - key: EMBEDDING_API_KEY
+        sync: false
 
 
   # Celery beat scheduler for periodic tasks
@@ -241,6 +245,8 @@ services:
         value: __default__
       - key: VECTOR_PROVIDER
         value: pinecone
+      - key: EMBEDDING_API_KEY
+        sync: false
 
   # MCP StreamableHTTP server
   - type: web
@@ -317,6 +323,8 @@ services:
         value: __default__
       - key: VECTOR_PROVIDER
         value: pinecone
+      - key: EMBEDDING_API_KEY
+        sync: false
 
 
   # Redis for MCP event store and Celery broker

@@ -456,6 +456,28 @@ async def update_products(
             "total_errors": sum(1 for r in results if r["action"] in ["skipped", "failed"])
         }
         
+        # Queue embedding generation for created and updated products
+        product_urns_for_embeddings = [
+            r["urn"] for r in results 
+            if r["type"] == "Product" and r["action"] in ["created", "updated"]
+        ]
+        
+        if product_urns_for_embeddings:
+            from app.worker.tasks.embeddings import generate_embedding_single, generate_embeddings_batch
+            
+            # Use single task for small batches, batch task for larger ones
+            if len(product_urns_for_embeddings) <= 10:
+                for urn in product_urns_for_embeddings:
+                    generate_embedding_single.delay(urn)
+                logger.info(f"Queued {len(product_urns_for_embeddings)} individual embedding generation tasks")
+            else:
+                # Process in chunks of 100
+                chunk_size = 100
+                for i in range(0, len(product_urns_for_embeddings), chunk_size):
+                    chunk = product_urns_for_embeddings[i:i + chunk_size]
+                    generate_embeddings_batch.delay(chunk)
+                logger.info(f"Queued {(len(product_urns_for_embeddings) + chunk_size - 1) // chunk_size} batch embedding generation tasks")
+        
         return {
             "status": "success",
             "summary": summary,
@@ -643,6 +665,28 @@ async def create_products(
             "total_successful": sum(1 for r in results if r["action"] in ["created", "updated"]),
             "total_errors": sum(1 for r in results if r["action"] in ["skipped", "failed"])
         }
+        
+        # Queue embedding generation for created products
+        created_product_urns = [
+            r["urn"] for r in results 
+            if r["type"] == "Product" and r["action"] == "created"
+        ]
+        
+        if created_product_urns:
+            from app.worker.tasks.embeddings import generate_embedding_single, generate_embeddings_batch
+            
+            # Use single task for small batches, batch task for larger ones
+            if len(created_product_urns) <= 10:
+                for urn in created_product_urns:
+                    generate_embedding_single.delay(urn)
+                logger.info(f"Queued {len(created_product_urns)} individual embedding generation tasks")
+            else:
+                # Process in chunks of 100
+                chunk_size = 100
+                for i in range(0, len(created_product_urns), chunk_size):
+                    chunk = created_product_urns[i:i + chunk_size]
+                    generate_embeddings_batch.delay(chunk)
+                logger.info(f"Queued {(len(created_product_urns) + chunk_size - 1) // chunk_size} batch embedding generation tasks")
         
         return {
             "status": "success",
