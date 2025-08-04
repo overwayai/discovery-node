@@ -61,6 +61,22 @@ class Settings(BaseSettings):
     EMBEDDING_API_KEY: str = os.getenv("EMBEDDING_API_KEY", "")  # API key for embedding provider
     EMBEDDING_DIMENSION: int = int(os.getenv("EMBEDDING_DIMENSION", "1536"))  # 1536 for text-embedding-3-small
     
+    # Multi-tenant settings
+    MULTI_TENANT_MODE: bool = os.getenv("MULTI_TENANT_MODE", "false").lower() == "true"
+    DEFAULT_ORGANIZATION_ID: str = os.getenv("DEFAULT_ORGANIZATION_ID", "")  # Used in single-tenant mode
+    
+    # CMP URN generation settings
+    CMP_NAMESPACE: str = os.getenv("CMP_NAMESPACE", "")  # UUID namespace for deterministic URN generation
+    
+    # Host configuration for feed URL generation
+    HOST: str = os.getenv("HOST", "localhost:8000")  # Host for feed URL generation
+    
+    # S3 settings for managed ingestion
+    AWS_S3_BUCKET_NAME: str = os.getenv("AWS_S3_BUCKET_NAME", "")  # S3 bucket for managed feeds
+    AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
+    
 
     @property
     def celery_broker_url(self) -> str:

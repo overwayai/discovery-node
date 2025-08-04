@@ -86,7 +86,7 @@ class FilterService:
     def filter_products(
         self,
         request_id: str,
-        filter_criteria: str,
+        filter_criteria: Optional[str],
         max_price: Optional[float] = None,
         min_price: Optional[float] = None,
         limit: Optional[int] = None
@@ -134,37 +134,41 @@ class FilterService:
             # Check if item matches filter criteria
             matches_criteria = False
             
-            # Search in various fields
-            searchable_text = " ".join([
-                str(item.get("name", "")),
-                str(item.get("description", "")),
-                str(item.get("category", "")),
-                str(item.get("brand", {}).get("name", "") if isinstance(item.get("brand"), dict) else ""),
-                # Include additional properties
-                " ".join([
-                    f"{prop.get('name', '')} {prop.get('value', '')}"
-                    for prop in item.get("additionalProperty", [])
-                ])
-            ])
-            
-            if self.keyword_match(searchable_text, filter_criteria):
+            # If no filter_criteria provided, we're doing price-only filtering
+            if not filter_criteria:
                 matches_criteria = True
-            
-            # Check variant attributes for Product type
-            if item.get("@type") == "Product" and not matches_criteria:
-                variant_attrs = item.get("variant_attributes", {})
-                if variant_attrs:
-                    variant_text = " ".join([f"{k} {v}" for k, v in variant_attrs.items()])
-                    if self.keyword_match(variant_text, filter_criteria):
-                        matches_criteria = True
-            
-            # Check product group variesBy for ProductGroup type
-            if item.get("@type") == "ProductGroup" and not matches_criteria:
-                varies_by = item.get("variesBy", [])
-                if varies_by:
-                    varies_text = " ".join(varies_by)
-                    if self.keyword_match(varies_text, filter_criteria):
-                        matches_criteria = True
+            else:
+                # Search in various fields
+                searchable_text = " ".join([
+                    str(item.get("name", "")),
+                    str(item.get("description", "")),
+                    str(item.get("category", "")),
+                    str(item.get("brand", {}).get("name", "") if isinstance(item.get("brand"), dict) else ""),
+                    # Include additional properties
+                    " ".join([
+                        f"{prop.get('name', '')} {prop.get('value', '')}"
+                        for prop in item.get("additionalProperty", [])
+                    ])
+                ])
+                
+                if self.keyword_match(searchable_text, filter_criteria):
+                    matches_criteria = True
+                
+                # Check variant attributes for Product type
+                if item.get("@type") == "Product" and not matches_criteria:
+                    variant_attrs = item.get("variant_attributes", {})
+                    if variant_attrs:
+                        variant_text = " ".join([f"{k} {v}" for k, v in variant_attrs.items()])
+                        if self.keyword_match(variant_text, filter_criteria):
+                            matches_criteria = True
+                
+                # Check product group variesBy for ProductGroup type
+                if item.get("@type") == "ProductGroup" and not matches_criteria:
+                    varies_by = item.get("variesBy", [])
+                    if varies_by:
+                        varies_text = " ".join(varies_by)
+                        if self.keyword_match(varies_text, filter_criteria):
+                            matches_criteria = True
             
             if not matches_criteria:
                 continue
@@ -209,7 +213,7 @@ class FilterService:
         cached_data: Dict[str, Any],
         filtered_items: List[Dict[str, Any]],
         total_filtered: int,
-        filter_criteria: str,
+        filter_criteria: Optional[str],
         max_price: Optional[float] = None,
         min_price: Optional[float] = None
     ) -> Dict[str, Any]:

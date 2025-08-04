@@ -10,7 +10,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 filter_router = APIRouter(
-    prefix="/v1",
     tags=["filter"],
     responses={
         404: {"description": "Cached results not found"},
@@ -108,6 +107,13 @@ async def filter_products(
         
         # Create filter service
         filter_service = FilterService()
+        
+        # Validate that at least one filter is provided
+        if not filter_request.filter_criteria and filter_request.max_price is None and filter_request.min_price is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="At least one filter criteria must be provided (text filter or price range)",
+            )
         
         # Get cached data and filter
         filtered_items, total_filtered = filter_service.filter_products(

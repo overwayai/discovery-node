@@ -1,8 +1,10 @@
-from .routes.search import search_router
-from .routes.products import products_router
-from .routes.cache import cache_router
-from .routes.filter import filter_router
-from .routes.compare import compare_router
-from .routes.health import health_router
+# Query/Discovery routers (read-only)
+from .routes.query import query_routers
 
-__all__ = ["search_router", "products_router", "cache_router", "filter_router", "compare_router", "health_router"]
+# Admin routers (CRUD operations)
+from .routes.admin import admin_routers
+
+# Public routers
+from .routes.public import public_routers
+
+__all__ = ["query_routers", "admin_routers", "public_routers"]

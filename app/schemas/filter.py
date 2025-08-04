@@ -14,9 +14,9 @@ class FilterRequest(BaseModel):
         pattern="^[A-Z0-9]{6}$",
         example="K3M9X2"
     )
-    filter_criteria: str = Field(
-        ...,
-        description="Natural language filter criteria",
+    filter_criteria: Optional[str] = Field(
+        None,
+        description="Natural language filter criteria (optional when using price filters)",
         min_length=1,
         max_length=200,
         example="waterproof"
@@ -56,7 +56,7 @@ class FilterRequest(BaseModel):
 class FilterMetadata(BaseModel):
     """Metadata about applied filters"""
     
-    criteria: str = Field(..., description="Applied filter criteria")
+    criteria: Optional[str] = Field(None, description="Applied filter criteria")
     maxPrice: Optional[float] = Field(None, description="Applied maximum price filter")
     minPrice: Optional[float] = Field(None, description="Applied minimum price filter")
     originalTotal: int = Field(..., description="Total results before filtering")
