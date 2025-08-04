@@ -97,7 +97,7 @@ services:
     plan: starter
     autoDeploy: true
     buildCommand: pip install -r requirements.txt
-    startCommand: celery -A app.worker.celery_app worker --loglevel=info -Q celery,embeddings_high,embeddings_bulk
+    startCommand: celery -A app.worker.celery_app worker --loglevel=info -Q celery,embeddings_high,embeddings_bulk --without-heartbeat --without-gossip --without-mingle
     envVars:
       - key: DATABASE_URL
         fromDatabase:
