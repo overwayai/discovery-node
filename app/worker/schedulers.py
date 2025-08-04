@@ -21,11 +21,11 @@ def get_beat_schedule():
     """
     schedule = {
         # Default scheduled tasks
-        "check-feed-updates": {
-            "task": "ingest:check_feed_updates",
-            "schedule": timedelta(seconds=settings.FEED_CHECK_INTERVAL),
-            "options": {"expires": 3600},
-        }
+        # "check-feed-updates": {  # Disabled to reduce memory usage
+        #     "task": "ingest:check_feed_updates",
+        #     "schedule": timedelta(seconds=settings.FEED_CHECK_INTERVAL),
+        #     "options": {"expires": 3600},
+        # }
     }
 
     # Add ingestion tasks from configuration

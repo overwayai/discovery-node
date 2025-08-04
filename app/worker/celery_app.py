@@ -16,8 +16,8 @@ celery_app = Celery(
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
     include=[
-        "app.worker.tasks.ingest",
-        "app.worker.tasks.cleanup",
+        # "app.worker.tasks.ingest",  # Disabled to reduce memory usage
+        # "app.worker.tasks.cleanup",  # Disabled to reduce memory usage
         "app.worker.tasks.embeddings",
     ],
 )
@@ -38,8 +38,8 @@ celery_app.conf.update(
         "embeddings:generate_single": {"queue": "embeddings_high"},
         "embeddings:generate_batch": {"queue": "embeddings_bulk"},
         "embeddings:regenerate_organization": {"queue": "embeddings_bulk"},
-        "ingest:*": {"queue": "celery"},  # Default queue for ingestion tasks
-        "cleanup:*": {"queue": "celery"},  # Default queue for cleanup tasks
+        # "ingest:*": {"queue": "celery"},  # Disabled to reduce memory usage
+        # "cleanup:*": {"queue": "celery"},  # Disabled to reduce memory usage
     },
     # Define queues
     task_queues={
@@ -75,13 +75,13 @@ def at_worker_ready(sender, **kwargs):
     logger.info("Celery worker is ready.")
 
     # Import here to avoid circular imports
-    from app.worker.tasks.ingest import schedule_all_ingestors
+    # from app.worker.tasks.ingest import schedule_all_ingestors  # Disabled to reduce memory usage
 
     # Schedule initial ingestion
-    print(f"TRIGGER_INGESTION_ON_STARTUP: {settings.TRIGGER_INGESTION_ON_STARTUP}")
-    if settings.TRIGGER_INGESTION_ON_STARTUP:
-        logger.info("Scheduling initial ingestion tasks...")
-        schedule_all_ingestors.delay()
+    # print(f"TRIGGER_INGESTION_ON_STARTUP: {settings.TRIGGER_INGESTION_ON_STARTUP}")
+    # if settings.TRIGGER_INGESTION_ON_STARTUP:
+    #     logger.info("Scheduling initial ingestion tasks...")
+    #     schedule_all_ingestors.delay()
 
 
 if __name__ == "__main__":
