@@ -158,6 +158,8 @@ python-dotenv==1.1.1
     #   pydantic-settings
 python-multipart==0.0.20
     # via mcp
+pytz==2025.2
+    # via discovery-node (pyproject.toml)
 pyyaml==6.0.2
     # via discovery-node (pyproject.toml)
 redis==6.2.0
