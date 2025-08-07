@@ -61,6 +61,12 @@ products_router = APIRouter(
         },
     },
 )
+@products_router.head(
+    "/products/{urn}",
+    response_model=None,
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False  # HEAD methods usually not shown in docs
+)
 async def get_product_by_urn(
     request: Request,
     urn: str = Path(

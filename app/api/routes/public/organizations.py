@@ -180,6 +180,7 @@ async def create_organization(
         raise HTTPException(status_code=500, detail=str(e))
 
 @organization_router.get("/organizations/{org_urn}")
+@organization_router.head("/organizations/{org_urn}")
 async def get_organization(
     org_urn: str,
     db: Session = Depends(get_db_session)

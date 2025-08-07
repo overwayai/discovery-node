@@ -19,6 +19,11 @@ health_router = APIRouter(
     summary="Basic health check",
     description="Check if the API is responsive"
 )
+@health_router.head(
+    "/health",
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False
+)
 async def health_check():
     """Basic health check endpoint"""
     return {
@@ -33,6 +38,11 @@ async def health_check():
     status_code=status.HTTP_200_OK,
     summary="Detailed health check",
     description="Check all service dependencies including database and Redis"
+)
+@health_router.head(
+    "/health/detailed",
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False
 )
 async def detailed_health_check():
     """Detailed health check including all dependencies"""

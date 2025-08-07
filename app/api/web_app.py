@@ -223,6 +223,7 @@ def create_app() -> FastAPI:
 
     # Health check endpoint
     @app.get("/health")
+    @app.head("/health")
     async def health_check():
         """Health check endpoint for load balancers and monitoring"""
         return {
@@ -246,6 +247,7 @@ def create_app() -> FastAPI:
 
     # OpenAPI specification endpoints - Full API
     @app.get("/openapi.yaml")
+    @app.head("/openapi.yaml")
     async def get_openapi_yaml():
         """Serve full OpenAPI specification in YAML format"""
         from fastapi.openapi.utils import get_openapi
@@ -266,6 +268,7 @@ def create_app() -> FastAPI:
         return Response(content=yaml_content, media_type="application/x-yaml")
 
     @app.get("/openapi.json")
+    @app.head("/openapi.json")
     async def get_openapi_json():
         """Serve full OpenAPI specification in JSON format"""
         from fastapi.openapi.utils import get_openapi
@@ -287,6 +290,7 @@ def create_app() -> FastAPI:
 
     # Query API OpenAPI specification
     @app.get("/api/v1/query/openapi.yaml")
+    @app.head("/api/v1/query/openapi.yaml")
     async def get_query_openapi_yaml():
         """Serve Query API OpenAPI specification in YAML format"""
         from fastapi.openapi.utils import get_openapi
