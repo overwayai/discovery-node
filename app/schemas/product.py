@@ -161,6 +161,24 @@ class ProductSearchResponse(BaseModel):
     cmp_requestId: Optional[str] = Field(
         None, alias="cmp:requestId", description="Request ID for caching"
     )
+    cmp_skip: Optional[int] = Field(
+        None, alias="cmp:skip", description="Number of results skipped"
+    )
+    cmp_limit: Optional[int] = Field(
+        None, alias="cmp:limit", description="Maximum number of results returned"
+    )
+    cmp_hasNext: Optional[bool] = Field(
+        None, alias="cmp:hasNext", description="Whether there are more results"
+    )
+    cmp_hasPrevious: Optional[bool] = Field(
+        None, alias="cmp:hasPrevious", description="Whether there are previous results"
+    )
+    cmp_nextSkip: Optional[int] = Field(
+        None, alias="cmp:nextSkip", description="Skip value for next page"
+    )
+    cmp_previousSkip: Optional[int] = Field(
+        None, alias="cmp:previousSkip", description="Skip value for previous page"
+    )
     datePublished: Optional[str] = Field(
         None, description="Publication date in ISO format"
     )

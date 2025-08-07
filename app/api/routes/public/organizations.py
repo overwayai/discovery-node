@@ -17,7 +17,7 @@ from app.services.api_key_service import APIKeyService
 # Request models
 class BrandData(BaseModel):
     name: str
-    url: str
+    url: Optional[str] = None  # Made optional since brand URL often same as org URL
     logo: Optional[str] = None
     urn: Optional[str] = None  # Optional, will be generated if not provided
 
@@ -132,9 +132,20 @@ async def create_organization(
         # Format using CMP brand-registry format
         formatted_response = format_organization_registry_response(db_organization)
         
-        # Add the brand URL from request data since it's not stored in DB
-        if "brand" in formatted_response and org_data.brand.url:
-            formatted_response["brand"]["url"] = org_data.brand.url
+        # Replace the brand info with the one we just created/updated
+        # The formatter picks the first brand, but we want the specific one from this request
+        if brand:
+            formatted_response["brand"] = {
+                "@type": "Brand",
+                "identifier": {
+                    "@type": "PropertyValue",
+                    "propertyID": "cmp:brandId",
+                    "value": brand.urn
+                },
+                "name": brand.name,
+                "url": org_data.brand.url or org_data.url,  # Use org URL as fallback
+                "logo": brand.logo_url
+            }
         
         # Add API key to the cmp:services structure
         if "cmp:services" in formatted_response and "cmp:adminAPI" in formatted_response["cmp:services"]:

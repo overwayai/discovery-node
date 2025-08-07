@@ -57,13 +57,12 @@ async def generate_dynamic_feed(
             "name": organization.name,
             "url": organization.url or base_url
         },
-        "openapi_spec": f"{base_url}/api/v1/openapi.json",
-        "search_template": f"{base_url}/api/v1/query/search?q={{query}}&category={{category}}&price_max={{price_max}}&attributes={{attributes}}&limit=20",
+        "openapi_spec": f"{base_url}/openapi.json",
+        "search_template": f"{base_url}/api/v1/query/search?q={{query}}&category={{category}}&price_max={{price_max}}&limit={{limit}}",
         "search_parameters": {
             "query": "REQUIRED: Natural-language search terms.",
             "category": "OPTIONAL: see facets.categories",
             "price_max": "OPTIONAL: Number",
-            "attributes": "OPTIONAL: see facets.attributes",
             "limit": "OPTIONAL: Max rows; default 20"
         },
         "facets": {
@@ -72,8 +71,8 @@ async def generate_dynamic_feed(
         },
         "examples": examples,
         "quick_access": {
-            "bestsellers": f"{base_url}/api/v1/query/search?attributes=popularity:true&limit=20",
-            "deals": f"{base_url}/api/v1/query/search?attributes=on_sale:true&attributes=discount_desc:true&limit=50",
+            "exclusive": f"{base_url}/api/v1/query/search?q=web%exclusive&attributes=popularity:true&limit=20",
+            "star wars collections": f"{base_url}/api/v1/query/search?q=star%wars&attributes=start-wars:true&attributes=discount_desc:true&limit=20",
             "new": f"{base_url}/api/v1/query/search?attributes=days_new:30&attributes=newest:true&limit=20"
         }
     }
@@ -143,8 +142,8 @@ def generate_search_examples(base_url: str, categories: List[str]) -> List[Dict[
     
     # Basic product search example
     examples.append({
-        "intent": "comfortable walking shoes under $100",
-        "ready_link": f"{base_url}/api/v1/query/search?q={quote('comfortable walking shoes')}&price_max=100&limit=20"
+        "intent": "cooking books for 12 year old for less than $50",
+        "ready_link": f"{base_url}/api/v1/query/search?q={quote('cooking books for 12 year old')}&price_max=50&limit=10"
     })
     
     # Category-based example if categories exist
@@ -153,23 +152,23 @@ def generate_search_examples(base_url: str, categories: List[str]) -> List[Dict[
         category_encoded = quote(category)
         examples.append({
             "intent": f"best products in {category}",
-            "ready_link": f"{base_url}/api/v1/query/search?q={quote('best products')}&category={category_encoded}&limit=20"
+            "ready_link": f"{base_url}/api/v1/query/search?q={quote('best products')}&category={category_encoded}&limit=10"
         })
     
     # Attribute-based example
     examples.append({
-        "intent": "eco-friendly products with free shipping",
-        "ready_link": f"{base_url}/api/v1/query/search?q={quote('eco-friendly')}&attributes={quote('shipping:free')}&limit=20"
+        "intent": "gift for somone who likes harry potter",
+        "ready_link": f"{base_url}/api/v1/query/search?q={quote('gift for somone who likes harry potter')}&limit=10"
     })
     
     return examples
 
 
-@feed_router.get("/feed/{filename:path}")
+@feed_router.get("/")
 async def serve_feed(
-    filename: str,
     request: Request,
-    db: Session = Depends(get_db_session)
+    db: Session = Depends(get_db_session),
+    filename: Optional[str] = "feed.json"
 ):
     """
     Serve feed files. For feed.json, generate dynamically. For other files, serve from S3.

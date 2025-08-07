@@ -66,6 +66,12 @@ async def get_products(
         le=100,
         example=20,
     ),
+    skip: int = Query(
+        default=0,
+        description="Number of results to skip for pagination",
+        ge=0,
+        example=0,
+    ),
     category: Optional[str] = Query(
         default=None,
         description="Filter results by category name",
@@ -87,6 +93,7 @@ async def get_products(
 
     - **q**: The search query (e.g., "gaming laptop", "wireless earbuds", "running shoes")
     - **limit**: Maximum number of results to return (1-100, default: 20)
+    - **skip**: Number of results to skip for pagination (default: 0)
     - **category**: Optional category filter (e.g., "books", "electronics")
     - **price_max**: Optional maximum price filter
 
@@ -117,14 +124,30 @@ async def get_products(
         results = search_service.search_products(
             q, 
             top_k=limit, 
+            skip=skip,
             filters=filters,
             organization_id=organization_id
         )
 
         response_data = format_product_search_response(results)
         
-        # Add request ID to response
+        # Add request ID and pagination metadata to response
         response_data["cmp:requestId"] = request_id
+        response_data["cmp:skip"] = skip
+        response_data["cmp:limit"] = limit
+        
+        # Add pagination helpers
+        if len(results) == limit:
+            response_data["cmp:hasNext"] = True
+            response_data["cmp:nextSkip"] = skip + limit
+        else:
+            response_data["cmp:hasNext"] = False
+            
+        if skip > 0:
+            response_data["cmp:hasPrevious"] = True
+            response_data["cmp:previousSkip"] = max(0, skip - limit)
+        else:
+            response_data["cmp:hasPrevious"] = False
 
         # Create the ProductSearchResponse object
         response = ProductSearchResponse(**response_data)

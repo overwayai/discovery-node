@@ -23,6 +23,7 @@ class PgVectorSearchService(BaseSearchService):
         self,
         query: str,
         top_k: int = 20,
+        skip: int = 0,
         alpha: float = 0.7,
         include_metadata: bool = True,
         filters: Optional[Dict[str, Any]] = None,
@@ -32,13 +33,13 @@ class PgVectorSearchService(BaseSearchService):
         
         try:
             start_time = time.time()
-            logger.info(f"🔍 Searching pgvector for query: '{query}'")
+            logger.info(f"🔍 Searching pgvector for query: '{query}' (skip={skip}, limit={top_k})")
             
             # Get embedding for query
             query_embedding = self._get_query_embedding(query)
             
             # Perform similarity search
-            results = self._search_by_embedding(query_embedding, top_k, filters, organization_id)
+            results = self._search_by_embedding(query_embedding, top_k, skip, filters, organization_id)
             
             total_time = time.time() - start_time
             logger.info(f"✅ Search completed in {total_time:.3f}s, found {len(results)} results")
@@ -77,10 +78,10 @@ class PgVectorSearchService(BaseSearchService):
             # Fallback to random for testing
             return np.random.rand(settings.EMBEDDING_DIMENSION).tolist()
     
-    def _search_by_embedding(self, embedding: List[float], top_k: int, filters: Optional[Dict[str, Any]] = None, organization_id: Optional[str] = None) -> List[SearchResult]:
+    def _search_by_embedding(self, embedding: List[float], top_k: int, skip: int = 0, filters: Optional[Dict[str, Any]] = None, organization_id: Optional[str] = None) -> List[SearchResult]:
         """Search products by embedding similarity"""
         
-        logger.info(f"Searching with embedding dimension: {len(embedding)}, top_k: {top_k}, organization_id: {organization_id}")
+        logger.info(f"Searching with embedding dimension: {len(embedding)}, top_k: {top_k}, skip: {skip}, organization_id: {organization_id}")
         
         # First check if we have any products with embeddings
         count_query = text("SELECT COUNT(*) FROM products WHERE embedding IS NOT NULL")
@@ -89,7 +90,7 @@ class PgVectorSearchService(BaseSearchService):
         
         # Build the similarity search query
         where_clauses = ["p.embedding IS NOT NULL"]
-        params = {"embedding": embedding, "limit": top_k}
+        params = {"embedding": embedding, "limit": top_k, "offset": skip}
         
         if organization_id:
             where_clauses.append("p.organization_id = :org_id")
@@ -129,8 +130,8 @@ class PgVectorSearchService(BaseSearchService):
             JOIN categories c ON p.category_id = c.id
             LEFT JOIN offers o ON o.product_id = p.id
             WHERE {where_clause}
-            ORDER BY p.embedding <=> CAST(:embedding AS vector)
-            LIMIT :limit
+            ORDER BY p.embedding <=> CAST(:embedding AS vector), p.urn
+            LIMIT :limit OFFSET :offset
         """)
         
         rows = self.db_session.execute(query_sql, params).fetchall()

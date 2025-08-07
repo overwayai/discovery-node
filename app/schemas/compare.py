@@ -68,6 +68,64 @@ class Recommendations(BaseModel):
     budget_option: int = Field(..., description="Index of budget choice")
 
 
+class CompareByUrnsRequest(BaseModel):
+    """Request model for product comparison by URNs"""
+    
+    urns: List[str] = Field(
+        ...,
+        description="Product URNs to compare",
+        min_items=2,
+        max_items=5,
+        example=[
+            "urn:cmp:sku:safco:dental:SYR-001",
+            "urn:cmp:sku:safco:dental:SYR-002",
+            "urn:cmp:sku:safco:dental:SYR-003"
+        ]
+    )
+    request_id: Optional[str] = Field(
+        None,
+        description="Optional 6-character cache request ID to use cached product data",
+        min_length=6,
+        max_length=6,
+        pattern="^[A-Z0-9]{6}$",
+        example="K3M9X2"
+    )
+    comparison_aspects: Optional[List[str]] = Field(
+        None,
+        description="Specific aspects to compare. If not provided, auto-detected from products",
+        example=["price", "features", "brand"]
+    )
+    format: Optional[ComparisonFormat] = Field(
+        ComparisonFormat.TABLE,
+        description="Output format for comparison",
+        example="table"
+    )
+    
+    @validator('urns')
+    def validate_urns(cls, v):
+        """Ensure URNs are unique and valid"""
+        if len(set(v)) != len(v):
+            raise ValueError("URNs must be unique")
+        # Basic URN validation
+        for urn in v:
+            if not urn.startswith("urn:"):
+                raise ValueError(f"Invalid URN format: {urn}")
+        return v
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "urns": [
+                    "urn:cmp:sku:safco:dental:SYR-001",
+                    "urn:cmp:sku:safco:dental:SYR-002"
+                ],
+                "request_id": "K3M9X2",
+                "comparison_aspects": ["price", "features"],
+                "format": "table"
+            }
+        }
+
+
 class ComparisonError(BaseModel):
     """Error response for comparison failures"""
     
