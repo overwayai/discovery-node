@@ -70,8 +70,13 @@ class VectorService:
             "availability": product.availability,
             "brand": product.brand_name,
             "category": product.category_name,
-            "product_group_id": product.product_group_id,
         }
+        
+        # Only add product_group_id if it's not None
+        # Pinecone doesn't accept null values in metadata
+        if product.product_group_id is not None:
+            metadata["product_group_id"] = product.product_group_id
+            
         return metadata
 
     def _prepare_records(self, products: List[ProductForVector]) -> List[dict]:

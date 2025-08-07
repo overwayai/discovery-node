@@ -34,6 +34,7 @@ class BaseSearchService(ABC):
         self,
         query: str,
         top_k: int = 20,
+        skip: int = 0,
         alpha: float = 0.7,
         include_metadata: bool = True,
         filters: Optional[Dict[str, Any]] = None,

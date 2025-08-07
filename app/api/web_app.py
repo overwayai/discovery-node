@@ -326,101 +326,101 @@ def create_app() -> FastAPI:
         return Response(content=yaml_content, media_type="application/x-yaml")
 
     # Root route to serve brand-registry.json based on subdomain
-    @app.get("/")
-    async def get_brand_registry(request: Request):
-        """Serve brand-registry.json based on subdomain"""
-        from app.db.base import get_db_session
-        from app.services.organization_service import OrganizationService
-        from app.services.brand_service import BrandService
+    # @app.get("/")
+    # async def get_brand_registry(request: Request):
+    #     """Serve brand-registry.json based on subdomain"""
+    #     from app.db.base import get_db_session
+    #     from app.services.organization_service import OrganizationService
+    #     from app.services.brand_service import BrandService
         
-        # Extract subdomain from host header
-        host = request.headers.get("host", "")
-        subdomain = None
+    #     # Extract subdomain from host header
+    #     host = request.headers.get("host", "")
+    #     subdomain = None
         
-        # Parse subdomain from host (e.g., "brand.discovery.com" -> "brand")
-        if host:
-            # Remove port if present
-            host_without_port = host.split(":")[0]
-            parts = host_without_port.split(".")
+    #     # Parse subdomain from host (e.g., "brand.discovery.com" -> "brand")
+    #     if host:
+    #         # Remove port if present
+    #         host_without_port = host.split(":")[0]
+    #         parts = host_without_port.split(".")
             
-            # For localhost development (e.g., "insight-editions.localhost")
-            if len(parts) >= 2 and parts[-1] == "localhost":
-                subdomain = parts[0]
-            # For production domains (e.g., "brand.discovery.com")
-            elif len(parts) > 2:  # At least subdomain.domain.tld
-                subdomain = parts[0]
+    #         # For localhost development (e.g., "insight-editions.localhost")
+    #         if len(parts) >= 2 and parts[-1] == "localhost":
+    #             subdomain = parts[0]
+    #         # For production domains (e.g., "brand.discovery.com")
+    #         elif len(parts) > 2:  # At least subdomain.domain.tld
+    #             subdomain = parts[0]
         
-        if not subdomain:
-            return JSONResponse(
-                status_code=404,
-                content={"error": "No subdomain found in request"}
-            )
+    #     if not subdomain:
+    #         return JSONResponse(
+    #             status_code=404,
+    #             content={"error": "No subdomain found in request"}
+    #         )
         
-        # Get organization by subdomain
-        db_gen = get_db_session()
-        db = next(db_gen)
-        try:
-            org_service = OrganizationService(db)
-            organization = org_service.get_by_subdomain(subdomain)
+    #     # Get organization by subdomain
+    #     db_gen = get_db_session()
+    #     db = next(db_gen)
+    #     try:
+    #         org_service = OrganizationService(db)
+    #         organization = org_service.get_by_subdomain(subdomain)
             
-            if not organization:
-                return JSONResponse(
-                    status_code=404,
-                    content={"error": f"Organization not found for subdomain: {subdomain}"}
-                )
+    #         if not organization:
+    #             return JSONResponse(
+    #                 status_code=404,
+    #                 content={"error": f"Organization not found for subdomain: {subdomain}"}
+    #             )
             
-            # Get brand for the organization
-            brand_service = BrandService(db)
-            brand = brand_service.get_by_organization_id(organization.id)
+    #         # Get brand for the organization
+    #         brand_service = BrandService(db)
+    #         brand = brand_service.get_by_organization_id(organization.id)
             
-            # Build brand-registry.json response
-            brand_registry = {
-                "@context": {
-                    "schema": "https://schema.org",
-                    "cmp": "https://schema.commercemesh.ai/ns#"
-                },
-                "@type": "Organization",
-                "name": organization.name,
-                "description": organization.description,
-                "url": organization.url,
-                "logo": organization.logo_url,
-                "brand": {
-                    "@type": "Brand",
-                    "name": brand.name if brand else organization.name,
-                    "logo": brand.logo_url if brand and brand.logo_url else organization.logo_url,
-                    "identifier": {
-                        "@type": "PropertyValue",
-                        "propertyID": "cmp:brandId",
-                        "value": brand.urn if brand else organization.urn
-                    }
-                } if brand else None,
-                "sameAs": organization.social_links if organization.social_links else [],
-                "cmp:category": [cat.slug for cat in organization.categories] if organization.categories else [],
-                "cmp:links": [
-                    {
-                        "@type": "catalogue",
-                        "url": f"https://{host}/feed/feed.json"
-                    },
-                    {
-                        "@type": "api",
-                        "url": f"https://{host}/api/v1/query/openapi.yaml"
-                    },
-                    {
-                        "@type": "mcp",
-                        "url": f"https://{host}/sse"
-                    }
-                ],
-                "identifier": {
-                    "@type": "PropertyValue",
-                    "propertyID": "cmp:orgId",
-                    "value": organization.urn
-                }
-            }
+    #         # Build brand-registry.json response
+    #         brand_registry = {
+    #             "@context": {
+    #                 "schema": "https://schema.org",
+    #                 "cmp": "https://schema.commercemesh.ai/ns#"
+    #             },
+    #             "@type": "Organization",
+    #             "name": organization.name,
+    #             "description": organization.description,
+    #             "url": organization.url,
+    #             "logo": organization.logo_url,
+    #             "brand": {
+    #                 "@type": "Brand",
+    #                 "name": brand.name if brand else organization.name,
+    #                 "logo": brand.logo_url if brand and brand.logo_url else organization.logo_url,
+    #                 "identifier": {
+    #                     "@type": "PropertyValue",
+    #                     "propertyID": "cmp:brandId",
+    #                     "value": brand.urn if brand else organization.urn
+    #                 }
+    #             } if brand else None,
+    #             "sameAs": organization.social_links if organization.social_links else [],
+    #             "cmp:category": [cat.slug for cat in organization.categories] if organization.categories else [],
+    #             "cmp:links": [
+    #                 {
+    #                     "@type": "catalogue",
+    #                     "url": f"https://{host}/feed/feed.json"
+    #                 },
+    #                 {
+    #                     "@type": "api",
+    #                     "url": f"https://{host}/api/v1/query/openapi.yaml"
+    #                 },
+    #                 {
+    #                     "@type": "mcp",
+    #                     "url": f"https://{host}/sse"
+    #                 }
+    #             ],
+    #             "identifier": {
+    #                 "@type": "PropertyValue",
+    #                 "propertyID": "cmp:orgId",
+    #                 "value": organization.urn
+    #             }
+    #         }
             
-            return JSONResponse(content=brand_registry)
+    #         return JSONResponse(content=brand_registry)
             
-        finally:
-            db.close()
+    #     finally:
+    #         db.close()
 
     # ValueError handler (before global handler)
     @app.exception_handler(ValueError)

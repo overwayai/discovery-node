@@ -12,8 +12,9 @@ logger = get_logger(__name__)
 class ComparisonService:
     """Service for comparing products from cached results"""
     
-    def __init__(self):
+    def __init__(self, db_session=None):
         self.cache_service = get_cache_service()
+        self.db_session = db_session
     
     def compare_products(
         self,
@@ -427,3 +428,125 @@ class ComparisonService:
             features.append(f"Varies by: {', '.join(varies_by)}")
         
         return features
+    
+    def compare_products_by_urns(
+        self,
+        urns: List[str],
+        request_id: Optional[str] = None,
+        comparison_aspects: Optional[List[str]] = None,
+        format_type: str = "table"
+    ) -> Dict[str, Any]:
+        """
+        Compare products by their URNs.
+        
+        Args:
+            urns: List of product URNs to compare
+            request_id: Optional cache request ID to use cached data
+            comparison_aspects: Specific aspects to compare
+            format_type: Output format (table, narrative, pros_cons)
+            
+        Returns:
+            Comparison results with new request ID
+            
+        Raises:
+            ValueError: If products not found
+        """
+        products = []
+        
+        # If request_id provided, try to get products from cache first
+        if request_id:
+            try:
+                cached_data = self._get_cached_data(request_id)
+                if cached_data:
+                    items = cached_data.get("itemListElement", [])
+                    # Build a URN to product mapping from cached data
+                    urn_to_product = {}
+                    for item in items:
+                        if isinstance(item, dict):
+                            product = item.get("item", {})
+                            product_urn = product.get("@id")
+                            if product_urn:
+                                urn_to_product[product_urn] = product
+                    
+                    # Try to find all requested products in cache
+                    for urn in urns:
+                        if urn in urn_to_product:
+                            products.append(urn_to_product[urn])
+                        else:
+                            # If any product not in cache, fetch from DB
+                            products = []
+                            break
+            except Exception as e:
+                logger.warning(f"Failed to use cached data: {e}")
+                products = []
+        
+        # If we don't have all products from cache, fetch from database
+        if not products or len(products) != len(urns):
+            if not self.db_session:
+                raise ValueError("Database session required to fetch products")
+            
+            from app.services.product_service import ProductService
+            from app.services.offer_service import OfferService
+            from app.utils.formatters import format_product_item
+            
+            product_service = ProductService(self.db_session)
+            offer_service = OfferService(self.db_session)
+            
+            products = []
+            for urn in urns:
+                # Fetch product by URN
+                product = product_service.get_by_urn(urn)
+                if not product:
+                    raise ValueError(f"Product with URN '{urn}' not found")
+                
+                # Get offers for the product
+                offers = offer_service.list_by_product(product.id)
+                
+                # Format product using the same formatter as search
+                formatted_product = format_product_item(
+                    product=product,
+                    product_offers=offers
+                )
+                
+                products.append(formatted_product)
+        
+        # Generate comparison matrix
+        if not comparison_aspects:
+            comparison_aspects = self._detect_comparison_aspects(products)
+        
+        matrix = self._generate_comparison_matrix(products, comparison_aspects, list(range(len(products))))
+        
+        # Generate narrative
+        narrative = self._generate_narrative(products, matrix, list(range(len(products))))
+        
+        # Generate recommendations
+        recommendations = self._generate_recommendations(products, matrix, list(range(len(products))))
+        
+        # Generate new request ID for comparison results
+        new_request_id = generate_request_id()
+        
+        # Prepare response
+        response = {
+            "@context": {
+                "schema": "https://schema.org",
+                "cmp": "https://schema.commercemesh.ai/ns#",
+            },
+            "@type": "ComparisonResult",
+            "cmp:requestId": new_request_id,
+            "cmp:originalRequestId": request_id or "direct",
+            "cmp:comparedIndices": list(range(len(products))),
+            "cmp:comparisonAspects": comparison_aspects,
+            "products": products,
+            "comparisonMatrix": matrix,
+            "narrative": narrative,
+            "recommendations": recommendations,
+            "datePublished": datetime.utcnow().isoformat() + "Z"
+        }
+        
+        # Cache the comparison result
+        self.cache_service.cache_response(
+            f"comparison:{new_request_id}",
+            response
+        )
+        
+        return response

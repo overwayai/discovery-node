@@ -264,7 +264,7 @@ def format_product_item(
         for media in media_to_process:
             if isinstance(media, dict) and media.get("url"):
                 # Determine if it's an image or other media
-                encoding_format = media.get("encodingFormat", "").lower()
+                encoding_format = (media.get("encodingFormat") or "").lower()
                 media_type = media.get("@type", media.get("type", "ImageObject"))
                 
                 if encoding_format.startswith("image/") or media_type == "ImageObject":

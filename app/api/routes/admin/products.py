@@ -170,7 +170,7 @@ class ListItem(BaseModel):
 class ItemListUpdate(BaseModel):
     context: Optional[Union[str, Dict[str, str]]] = Field(alias="@context", default=None)
     type_: str = Field(alias="@type", default="ItemList")
-    itemListElement: List[ListItem] = Field(..., max_items=200, description="Maximum 200 items per request")
+    itemListElement: List[ListItem] = Field(..., max_items=600, description="Maximum 200 items per request")
 
     @field_validator('context')
     def validate_context(cls, v):
@@ -746,29 +746,36 @@ async def list_products(
     # Format each product into ItemList elements
     item_list_elements = []
     for i, product in enumerate(products):
-        # Get offers for this product
-        offers = offer_service.list_by_product(product.id)
-        
-        # Get product group if exists
-        product_group = None
-        if product.product_group_id:
-            pg_service = ProductGroupService(db)
-            product_group = pg_service.get_product_group(product.product_group_id)
-        
-        # Format product using existing formatter
-        product_item = formatters.format_product_item(
-            product=product,
-            product_offers=offers,
-            product_group=product_group
-        )
-        
-        # Create list item
-        list_item = {
-            "@type": "ListItem",
-            "position": i + 1,
-            "item": product_item
-        }
-        item_list_elements.append(list_item)
+        try:
+            # Get offers for this product
+            offers = offer_service.list_by_product(product.id)
+            
+            # Get product group if exists
+            product_group = None
+            if product.product_group_id:
+                pg_service = ProductGroupService(db)
+                product_group = pg_service.get_product_group(product.product_group_id)
+            
+            # Format product using existing formatter
+            product_item = formatters.format_product_item(
+                product=product,
+                product_offers=offers,
+                product_group=product_group
+            )
+            
+            # Create list item
+            list_item = {
+                "@type": "ListItem",
+                "position": i + 1,
+                "item": product_item
+            }
+            item_list_elements.append(list_item)
+        except Exception as e:
+            logger.error(f"Error formatting product {product.id}: {str(e)}")
+            logger.error(f"Product data: urn={product.urn}, name={product.name}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
     
     # Build response with pagination
     response = {

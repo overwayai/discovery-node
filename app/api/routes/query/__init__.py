@@ -3,7 +3,7 @@ from .products import products_router
 from .filter import filter_router
 from .compare import compare_router
 from .cache import cache_router
-from .feed import feed_router
+from ..public.feed import feed_router
 
 query_routers = [
     ("search", search_router),
