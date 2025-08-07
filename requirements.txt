@@ -239,3 +239,4 @@ watchdog==6.0.0
     # via discovery-node (pyproject.toml)
 wcwidth==0.2.13
     # via prompt-toolkit
+jinja2==3.1.4

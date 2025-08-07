@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
-from typing import Optional, List, Dict, Any
+from fastapi.responses import JSONResponse, HTMLResponse
+from typing import Optional, List, Dict, Any, Union
 import logging
 import re
 from datetime import datetime, timezone
 from urllib.parse import quote
+from app.utils.html_formatter import HTMLFormatter
+from app.utils.content_negotiation import should_return_html
 
 from app.storage.s3_reader import S3Reader
 from app.core.dependencies import get_organization_context
@@ -233,28 +235,45 @@ async def serve_feed(
         logger.info(f"Generating dynamic feed.json for organization {organization.name}")
         feed_data = await generate_dynamic_feed(organization, request, db)
         
-        # Return with appropriate headers for crawlers/bots
-        return JSONResponse(
-            content=feed_data,
-            headers={
-                # Allow all origins for feed access
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type, User-Agent",
-                
-                # Cache for 1 hour
-                "Cache-Control": "public, max-age=3600",
-                
-                # Indicate content type
-                "Content-Type": "application/json; charset=utf-8",
-                
-                # Allow robots
-                "X-Robots-Tag": "all",
-                
-                # No authentication required
-                "X-Content-Type-Options": "nosniff",
-            }
-        )
+        # Check if HTML response is preferred
+        if should_return_html(request):
+            # Format as HTML
+            html_formatter = HTMLFormatter(base_url=str(request.base_url).rstrip('/'))
+            html_content = html_formatter.format_feed(feed_data)
+            return HTMLResponse(
+                content=html_content,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type, User-Agent",
+                    "Cache-Control": "public, max-age=3600",
+                    "X-Robots-Tag": "all",
+                    "X-Content-Type-Options": "nosniff",
+                }
+            )
+        else:
+            # Return JSON with appropriate headers for crawlers/bots
+            return JSONResponse(
+                content=feed_data,
+                headers={
+                    # Allow all origins for feed access
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, OPTIONS",
+                    "Access-Control-Allow-Headers": "Content-Type, User-Agent",
+                    
+                    # Cache for 1 hour
+                    "Cache-Control": "public, max-age=3600",
+                    
+                    # Indicate content type
+                    "Content-Type": "application/json; charset=utf-8",
+                    
+                    # Allow robots
+                    "X-Robots-Tag": "all",
+                    
+                    # No authentication required
+                    "X-Content-Type-Options": "nosniff",
+                }
+            )
     
     # For other feed files, continue with S3 retrieval
     # Use the full URN as the S3 folder path
