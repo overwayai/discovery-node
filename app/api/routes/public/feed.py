@@ -167,6 +167,7 @@ def generate_search_examples(base_url: str, categories: List[str]) -> List[Dict[
 
 
 @feed_router.get("/")
+@feed_router.head("/")
 async def serve_feed(
     request: Request,
     db: Session = Depends(get_db_session),

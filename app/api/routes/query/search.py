@@ -57,6 +57,12 @@ search_router = APIRouter(
         },
     },
 )
+@search_router.head(
+    "/search",
+    response_model=None,
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False  # HEAD methods usually not shown in docs
+)
 async def get_products(
     request: Request,
     q: str = Query(

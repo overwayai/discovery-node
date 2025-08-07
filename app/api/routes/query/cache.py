@@ -56,6 +56,12 @@ cache_router = APIRouter(
         },
     },
 )
+@cache_router.head(
+    "/{request_id}",
+    response_model=None,
+    status_code=status.HTTP_200_OK,
+    include_in_schema=False  # HEAD methods usually not shown in docs
+)
 async def get_cached_response(
     request_id: str = Path(
         ...,
