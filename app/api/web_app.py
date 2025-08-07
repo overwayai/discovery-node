@@ -59,6 +59,7 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
+        default_response_class=JSONResponse,  # Ensures all responses are JSON with proper Content-Type
     )
 
     # app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -202,13 +203,22 @@ def create_app() -> FastAPI:
             logger.info(f"[{request_id}] {'='*60}")
             raise  # Re-raise the exception so it's handled properly
 
-    # Add request timing middleware
+    # Add request timing middleware and ensure JSON content-type
     @app.middleware("http")
     async def add_process_time_header(request: Request, call_next):
         start_time = time.time()
         response = await call_next(request)
         process_time = time.time() - start_time
         response.headers["X-Process-Time"] = str(process_time)
+        
+        # Ensure JSON responses have proper Content-Type
+        # Check if response doesn't already have Content-Type set
+        if "content-type" not in response.headers:
+            # Check if this is likely a JSON response (most of our endpoints return JSON)
+            # Exclude specific endpoints that return other content types
+            if not request.url.path.endswith(('.yaml', '.yml', '.xml', '.html', '.css', '.js')):
+                response.headers["Content-Type"] = "application/json"
+        
         return response
 
     # Health check endpoint
