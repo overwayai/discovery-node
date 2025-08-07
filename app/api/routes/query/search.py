@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query, status, Depends, Path
+from fastapi import APIRouter, HTTPException, Query, status, Depends, Path, Request
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from app.services.search import SearchServiceFactory
 from app.services.product_service import ProductService
 from app.schemas.product import ProductSearchResponse, ProductByUrnResponse
@@ -6,9 +7,11 @@ from app.db.base import get_db_session
 from app.services.cache_service import get_cache_service
 from app.core.dependencies import OrganizationId
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from uuid import UUID
 from app.utils.formatters import format_product_search_response, format_product_by_urn_response
+from app.utils.html_formatter import HTMLFormatter
+from app.utils.content_negotiation import should_return_html, get_preferred_content_type
 import logging
 import urllib.parse
 
@@ -25,7 +28,7 @@ search_router = APIRouter(
 
 @search_router.get(
     "/search",
-    response_model=ProductSearchResponse,
+    response_model=None,  # We'll handle response model based on content type
     status_code=status.HTTP_200_OK,
     summary="Search for products",
     description="Search for products using a natural language query. Returns a list of relevant products ranked by similarity score.",
@@ -33,7 +36,10 @@ search_router = APIRouter(
     responses={
         200: {
             "description": "Successful product search",
-            "model": ProductSearchResponse,
+            "content": {
+                "application/json": {"model": ProductSearchResponse},
+                "text/html": {"description": "HTML formatted product list"}
+            }
         },
         400: {
             "description": "Invalid search query",
@@ -52,6 +58,7 @@ search_router = APIRouter(
     },
 )
 async def get_products(
+    request: Request,
     q: str = Query(
         default="James Cameron",
         description="Search query for finding products",
@@ -85,7 +92,7 @@ async def get_products(
     ),
     organization_id: OrganizationId = None,
     db: Session = Depends(get_db_session),
-) -> ProductSearchResponse:
+) -> Union[Response, ProductSearchResponse]:
     """
     Search for products using natural language queries.
 
@@ -149,13 +156,24 @@ async def get_products(
         else:
             response_data["cmp:hasPrevious"] = False
 
-        # Create the ProductSearchResponse object
-        response = ProductSearchResponse(**response_data)
-        
         # Cache the response
         cache_service.cache_response(cache_key, response_data)
 
-        return response
+        # Check if HTML response is preferred
+        if should_return_html(request):
+            # Format as HTML
+            html_formatter = HTMLFormatter(base_url=str(request.base_url).rstrip('/'))
+            
+            # Add query to context for pagination links
+            response_data_with_query = response_data.copy()
+            response_data_with_query['query'] = q
+            
+            html_content = html_formatter.format_response(response_data_with_query, "product_list")
+            return HTMLResponse(content=html_content)
+        else:
+            # Return JSON response
+            response = ProductSearchResponse(**response_data)
+            return response
 
     except HTTPException:
         raise

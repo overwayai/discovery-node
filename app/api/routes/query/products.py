@@ -1,13 +1,16 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Path
+from fastapi import APIRouter, HTTPException, status, Depends, Path, Request
+from fastapi.responses import HTMLResponse, Response
 from app.services.product_service import ProductService
 from app.schemas.product import ProductByUrnResponse
 from app.db.base import get_db_session
 from app.services.cache_service import get_cache_service
 from app.core.dependencies import OrganizationId
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID
 from app.utils.formatters import format_product_by_urn_response
+from app.utils.html_formatter import HTMLFormatter
+from app.utils.content_negotiation import should_return_html
 import logging
 import urllib.parse
 
@@ -24,7 +27,7 @@ products_router = APIRouter(
 
 @products_router.get(
     "/products/{urn}",
-    response_model=ProductByUrnResponse,
+    response_model=None,  # We'll handle response model based on content type
     status_code=status.HTTP_200_OK,
     summary="Get product or product group by URN",
     description="Search for a URN in both products and product groups tables. Returns different structures based on what's found: ProductGroup URN returns ProductGroup + all linked products; Product URN with ProductGroup returns both; Product URN without ProductGroup returns only the product.",
@@ -59,6 +62,7 @@ products_router = APIRouter(
     },
 )
 async def get_product_by_urn(
+    request: Request,
     urn: str = Path(
         ...,
         description="Product URN (Uniform Resource Name)",
@@ -68,7 +72,7 @@ async def get_product_by_urn(
     ),
     organization_id: OrganizationId = None,
     db: Session = Depends(get_db_session),
-) -> ProductByUrnResponse:
+) -> Union[Response, ProductByUrnResponse]:
     """
     Search for a URN in both products and product groups tables.
 
@@ -129,14 +133,24 @@ async def get_product_by_urn(
         
         # Add request ID to response
         response_data["cmp:requestId"] = request_id
-
-        # Create the ProductByUrnResponse object
-        response = ProductByUrnResponse(**response_data)
         
         # Cache the response
         cache_service.cache_response(cache_key, response_data)
 
-        return response
+        # Check if HTML response is preferred
+        if should_return_html(request):
+            # Format as HTML
+            html_formatter = HTMLFormatter(base_url=str(request.base_url).rstrip('/'))
+            
+            # Determine response type based on content
+            response_type = "product_list" if "itemListElement" in response_data else "single_product"
+            
+            html_content = html_formatter.format_response(response_data, response_type)
+            return HTMLResponse(content=html_content)
+        else:
+            # Return JSON response
+            response = ProductByUrnResponse(**response_data)
+            return response
 
     except HTTPException:
         raise
